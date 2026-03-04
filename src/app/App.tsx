@@ -13,7 +13,7 @@ export default function App() {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const targetWidth = 230;
+      const targetWidth = 220;
       const targetHeight = 362;
       const padding = 40;
 
@@ -105,7 +105,7 @@ export default function App() {
       >
         <div
           style={{
-            width: "230px",
+            width: "220px",
             height: "362px",
             position: "relative",
             flexShrink: 0,
