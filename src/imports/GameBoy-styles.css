@@ -1,0 +1,1137 @@
+/* Gameboy */
+
+position: relative;
+width: 230px;
+height: 362px;
+
+background: #C8C5C2;
+box-shadow: inset -2px 2px 4px rgba(0, 0, 0, 0.25), inset 0px -2px 4px rgba(0, 0, 0, 0.25), inset 2px 0px 4px rgba(255, 255, 255, 0.5);
+border-radius: 8px 8px 14px 14px;
+
+
+/* D-Pad */
+
+position: absolute;
+width: 72px;
+height: 72px;
+left: 20px;
+top: 207px;
+
+
+
+/* D-Pad */
+
+position: absolute;
+width: 72px;
+height: 72px;
+left: 20px;
+top: 207px;
+
+filter: drop-shadow(-4px 4px 16px rgba(0, 0, 0, 0.15));
+
+
+/* Indent */
+
+position: absolute;
+width: 72px;
+height: 72px;
+left: 0px;
+top: 0px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 4px;
+
+
+/* Rectangle */
+
+position: absolute;
+left: 0%;
+right: 0%;
+top: 31.58%;
+bottom: 31.58%;
+
+background: #D9D9D9;
+border-radius: 6px;
+
+
+/* Rectangle */
+
+position: absolute;
+left: 31.58%;
+right: -31.58%;
+top: 0%;
+bottom: 63.16%;
+
+background: #D9D9D9;
+border-radius: 6px;
+transform: rotate(90deg);
+
+
+/* Cross */
+
+position: absolute;
+width: 68.21px;
+height: 68.21px;
+left: 1.89px;
+top: 1.89px;
+
+background: #5D5F60;
+box-shadow: inset 2px -2px 2px rgba(0, 0, 0, 0.25), inset -2px 2px 2px rgba(255, 255, 255, 0.25);
+border-radius: 5px;
+
+
+/* Rectangle */
+
+position: absolute;
+left: 2.63%;
+right: 2.63%;
+top: 34.21%;
+bottom: 34.21%;
+
+background: #D9D9D9;
+
+
+/* Rectangle */
+
+position: absolute;
+left: 34.21%;
+right: -28.95%;
+top: 2.63%;
+bottom: 65.79%;
+
+background: #D9D9D9;
+transform: rotate(90deg);
+
+
+/* Icon */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 12px;
+height: 10px;
+left: 8px;
+top: calc(50% - 10px/2);
+
+border: 3px solid #464946;
+box-shadow: inset 0px 0px 1px rgba(0, 0, 0, 0.25);
+
+
+/* Icon */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 12px;
+height: 10px;
+left: calc(50% - 12px/2 + 1px);
+top: 8px;
+
+border: 3px solid #464946;
+box-shadow: inset 0px 0px 1px rgba(0, 0, 0, 0.25);
+transform: rotate(90deg);
+
+
+/* Icon */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 12px;
+height: 10px;
+right: 8px;
+top: calc(50% - 10px/2);
+
+border: 3px solid #464946;
+box-shadow: inset 0px 0px 1px rgba(0, 0, 0, 0.25);
+transform: rotate(-180deg);
+
+
+/* Icon */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 12px;
+height: 10px;
+left: calc(50% - 12px/2 + 1px);
+bottom: 10px;
+
+border: 3px solid #464946;
+box-shadow: inset 0px 0px 1px rgba(0, 0, 0, 0.25);
+transform: rotate(-90deg);
+
+
+/* Gap */
+
+position: absolute;
+width: 12px;
+height: 12px;
+left: calc(50% - 12px/2);
+top: calc(50% - 12px/2);
+
+background: #5D5F60;
+box-shadow: inset -1px 1px 4px rgba(0, 0, 0, 0.25), inset 1px -1px 4px rgba(255, 255, 255, 0.25);
+border-radius: 5px;
+
+
+/* Button */
+
+position: absolute;
+width: 72px;
+height: 80px;
+left: 138px;
+top: 203px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 25.2px;
+height: 32.73px;
+right: 66.8px;
+top: 226.64px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 2px;
+
+width: 28px;
+height: 28px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 24px;
+height: 24px;
+
+background: linear-gradient(225deg, #858583 16.09%, #353431 84.15%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 22px;
+height: 22px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #6A6A68 0%, #050505 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Y */
+
+width: 5px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 25.2px;
+height: 32.73px;
+right: 43.4px;
+top: 203px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 2px;
+
+width: 28px;
+height: 28px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 24px;
+height: 24px;
+
+background: linear-gradient(225deg, #858583 16.09%, #353431 84.15%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 22px;
+height: 22px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #6A6A68 0%, #050505 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* X */
+
+width: 5px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 25.2px;
+height: 32.73px;
+right: 20px;
+top: 226.64px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 2px;
+
+width: 28px;
+height: 28px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 24px;
+height: 24px;
+
+background: linear-gradient(225deg, #F286CA 16.09%, #770D58 84.15%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 22px;
+height: 22px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #F28EBE 0%, #A41278 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* A */
+
+width: 5px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 25.2px;
+height: 32.73px;
+right: 43.4px;
+top: 250.27px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 2px;
+
+width: 28px;
+height: 28px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 24px;
+height: 24px;
+
+background: linear-gradient(225deg, #F286CA 16.09%, #770D58 84.15%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 22px;
+height: 22px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #F28EBE 0%, #A41278 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* B */
+
+width: 5px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 22px;
+height: 28px;
+left: calc(50% - 22px/2);
+top: 187px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 4px;
+gap: 10px;
+
+width: 24px;
+height: 24px;
+
+background: linear-gradient(225deg, #9C9A96 20.82%, #B5B4B0 78.6%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 16px;
+height: 16px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 14px;
+height: 14px;
+
+background: linear-gradient(225deg, #858583 16.09%, #353431 84.15%);
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 12px;
+height: 12px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #6A6A68 0%, #404040 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* MENU */
+
+width: 19px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Group 3 */
+
+position: absolute;
+width: 38.18px;
+height: 38.18px;
+left: 68px;
+top: 301px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 32px;
+height: 22px;
+left: calc(50% - 32px/2 - 31px);
+top: 301px;
+
+transform: rotate(-45deg);
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 4px;
+gap: 10px;
+
+width: 36px;
+height: 20px;
+
+background: linear-gradient(225deg, #9C9A96 20.82%, #B5B4B0 78.6%);
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 28px;
+height: 12px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 26px;
+height: 10px;
+
+background: linear-gradient(225deg, #858583 16.09%, #353431 84.15%);
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 24px;
+height: 8px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #6A6A68 0%, #404040 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Select */
+
+width: 28px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Group 2 */
+
+position: absolute;
+width: 38.18px;
+height: 38.18px;
+left: 123px;
+top: 301px;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 0px;
+gap: 2px;
+
+position: absolute;
+width: 32px;
+height: 22px;
+left: calc(50% - 32px/2 + 24px);
+top: 301px;
+
+transform: rotate(-45deg);
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 4px;
+gap: 10px;
+
+width: 36px;
+height: 20px;
+
+background: linear-gradient(225deg, #9C9A96 20.82%, #B5B4B0 78.6%);
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 28px;
+height: 12px;
+
+background: linear-gradient(225deg, #2A2729 0%, #121112 100%);
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Indent */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 1px;
+
+width: 26px;
+height: 10px;
+
+background: linear-gradient(225deg, #858583 16.09%, #353431 84.15%);
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Center */
+
+width: 24px;
+height: 8px;
+
+background: radial-gradient(68.18% 68.18% at 18.18% 86.36%, #6A6A68 0%, #404040 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
+border-radius: 999px;
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Start */
+
+width: 24px;
+height: 6px;
+
+font-family: 'IBM Plex Mono';
+font-style: normal;
+font-weight: 700;
+font-size: 8px;
+line-height: 120%;
+/* or 10px */
+/* leading-trim and text-edge are draft CSS properties.
+
+Read more: https://drafts.csswg.org/css-inline-3/#leading-trim
+*/
+leading-trim: both;
+text-edge: cap;
+display: flex;
+align-items: flex-end;
+letter-spacing: -0.03em;
+
+color: #302F6B;
+
+transform: rotate(-45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Screen container */
+
+position: absolute;
+height: 168.37px;
+left: 6px;
+right: 6px;
+top: calc(50% - 168.37px/2 - 90.81px);
+
+background: #080808;
+box-shadow: 0px 1px 1px rgba(255, 255, 255, 0.5), inset 2px 2px 2px rgba(0, 0, 0, 0.5), inset -2px 2px 2px rgba(255, 255, 255, 0.25);
+border-radius: 6px;
+
+
+/* Frame 31 */
+
+position: absolute;
+left: 12px;
+right: 12px;
+top: 12px;
+bottom: 12.37px;
+
+background: #1B1B1B;
+border-radius: 1px;
+
+
+/* Group 1 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 180px;
+top: 312px;
+
+
+
+/* Sound grid */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+padding: 0px;
+gap: 4px;
+
+position: absolute;
+width: 26.4px;
+height: 35.83px;
+right: 23.6px;
+bottom: 14.17px;
+
+transform: rotate(45deg);
+
+
+/* Gap */
+
+width: 24px;
+height: 3px;
+
+background: #868079;
+box-shadow: inset -1px 0px 1px rgba(0, 0, 0, 0.25);
+border-radius: 3px;
+transform: rotate(45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Gap */
+
+width: 24px;
+height: 3px;
+
+background: #868079;
+box-shadow: inset -1px 0px 1px rgba(0, 0, 0, 0.25);
+border-radius: 3px;
+transform: rotate(45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Gap */
+
+width: 24px;
+height: 3px;
+
+background: #868079;
+box-shadow: inset -1px 0px 1px rgba(0, 0, 0, 0.25);
+border-radius: 3px;
+transform: rotate(45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Gap */
+
+width: 24px;
+height: 3px;
+
+background: #868079;
+box-shadow: inset -1px 0px 1px rgba(0, 0, 0, 0.25);
+border-radius: 3px;
+transform: rotate(45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Gap */
+
+width: 24px;
+height: 3px;
+
+background: #868079;
+box-shadow: inset -1px 0px 1px rgba(0, 0, 0, 0.25);
+border-radius: 3px;
+transform: rotate(45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+flex-grow: 0;
+
+
+/* Gap */
+
+width: 24px;
+height: 3px;
+
+background: #868079;
+box-shadow: inset -1px 0px 1px rgba(0, 0, 0, 0.25);
+border-radius: 3px;
+transform: rotate(45deg);
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+flex-grow: 0;
