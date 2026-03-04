@@ -1,10 +1,12 @@
 import svgPaths from "./svg-lmu6lkplfc";
+import VintageOS from "../app/VintageOS";
 
 interface GameBoyProps {
   state: "OFF" | "BOOTING" | "MAIN_MENU" | "POWER_CONFIRM";
   bootStep: number;
   onAction: (type: string) => void;
   selectedPowerOption: "YES" | "NO";
+  osActiveIndex: number;
 }
 
 function DPad1({ onAction }: { onAction: (type: string) => void }) {
@@ -483,13 +485,15 @@ function Frame({
   state,
   bootStep,
   selectedPowerOption,
+  osActiveIndex,
 }: {
   state: string;
   bootStep: number;
   selectedPowerOption: string;
+  osActiveIndex: number;
 }) {
   return (
-    <div className="absolute bg-[#1b1b1b] flex flex-col items-center justify-center overflow-hidden rounded-[1px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] top-[12px] bottom-[12.37px] left-[12px] right-[12px]">
+    <div className="absolute bg-[#1b1b1b] flex flex-col items-center justify-center overflow-hidden rounded-[1px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] top-[10px] bottom-[10.37px] left-[10px] right-[10px]">
       {state === "OFF" && <div className="absolute inset-0 bg-black" />}
 
       {state === "BOOTING" && (
@@ -506,16 +510,7 @@ function Frame({
       )}
 
       {state === "MAIN_MENU" && (
-        <div className="flex flex-col items-center p-4 h-full w-full bg-[#8b956d]">
-          <div className="font-['IBM_Plex_Mono:Bold',sans-serif] text-[14px] text-[#0f380f] mb-4">
-            MAIN MENU
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-[10px] text-[#0f380f] text-center italic">
-              Ready to Play
-            </div>
-          </div>
-        </div>
+        <VintageOS activeIndex={osActiveIndex} />
       )}
 
       {state === "POWER_CONFIRM" && (
@@ -553,17 +548,19 @@ function ScreenContainer({
   state,
   bootStep,
   selectedPowerOption,
+  osActiveIndex,
 }: {
   state: string;
   bootStep: number;
   selectedPowerOption: string;
+  osActiveIndex: number;
 }) {
   return (
     <div
       className="-translate-y-1/2 absolute aspect-[246/190] bg-[#080808] left-[6px] overflow-clip right-[6px] rounded-[6px] shadow-[0px_1px_1px_0px_rgba(255,255,255,0.5)] top-[calc(50%-90.81px)]"
       data-name="Screen container"
     >
-      <Frame state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} />
+      <Frame state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} />
       <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_2px_2px_2px_0px_rgba(0,0,0,0.5),inset_-2px_2px_2px_0px_rgba(255,255,255,0.25)]" />
     </div>
   );
@@ -642,7 +639,7 @@ function Group() {
   );
 }
 
-export default function GameBoy({ state, bootStep, onAction, selectedPowerOption }: GameBoyProps) {
+export default function GameBoy({ state, bootStep, onAction, selectedPowerOption, osActiveIndex }: GameBoyProps) {
   return (
     <div className="bg-[#c8c5c2] overflow-clip relative rounded-bl-[14px] rounded-br-[14px] rounded-tl-[10px] rounded-tr-[10px] size-full select-none" data-name="GameBoy">
       <DPad onAction={onAction} />
@@ -650,7 +647,7 @@ export default function GameBoy({ state, bootStep, onAction, selectedPowerOption
       <Button9 onAction={onAction} />
       <Group2 onAction={onAction} />
       <Group1 onAction={onAction} />
-      <ScreenContainer state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} />
+      <ScreenContainer state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} />
       <Group />
       <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_-2px_2px_4px_0px_rgba(0,0,0,0.25),inset_0px_-2px_4px_0px_rgba(0,0,0,0.25),inset_2px_0px_4px_0px_rgba(255,255,255,0.5)]" />
     </div>

@@ -8,6 +8,7 @@ export default function App() {
   const [currentState, setCurrentState] = useState<GameBoyState>("OFF");
   const [bootStep, setBootStep] = useState(0); // 0: None, 1: GAME BOY, 2: Booting...
   const [selectedPowerOption, setSelectedPowerOption] = useState<"YES" | "NO">("NO");
+  const [osActiveIndex, setOsActiveIndex] = useState(0); // 0 to 4
 
   useEffect(() => {
     const handleResize = () => {
@@ -59,9 +60,16 @@ export default function App() {
       }
 
       if (currentState === "MAIN_MENU") {
-        if (type === "MENU") {
-          setCurrentState("POWER_CONFIRM");
-          setSelectedPowerOption("NO");
+        if (type === "UP") {
+          setOsActiveIndex((prev) => (prev === 0 ? 4 : prev - 1)); // Wrap to bottom
+        } else if (type === "DOWN") {
+          setOsActiveIndex((prev) => (prev === 4 ? 0 : prev + 1)); // Wrap to top
+        } else if (type === "A") {
+          // If 'Power Off' (index 4) is selected
+          if (osActiveIndex === 4) {
+             setCurrentState("POWER_CONFIRM");
+             setSelectedPowerOption("NO");
+          }
         }
         return;
       }
@@ -81,7 +89,7 @@ export default function App() {
         return;
       }
     },
-    [currentState, selectedPowerOption]
+    [currentState, selectedPowerOption, osActiveIndex]
   );
 
   return (
@@ -111,7 +119,7 @@ export default function App() {
             flexShrink: 0,
           }}
         >
-          <GameBoy state={currentState} bootStep={bootStep} onAction={handleAction} selectedPowerOption={selectedPowerOption} />
+          <GameBoy state={currentState} bootStep={bootStep} onAction={handleAction} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} />
         </div>
       </div>
     </div>
