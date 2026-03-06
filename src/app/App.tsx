@@ -1,26 +1,35 @@
 import { useState, useEffect, useCallback } from "react";
 import GameBoy from "../imports/GameBoy-3-330";
-
-type GameBoyState = "OFF" | "BOOTING" | "MAIN_MENU" | "POWER_CONFIRM";
+import { useGameBoyStore } from "../stores/gameBoyStore";
+import { useGameBoySound } from "../hooks/useGameBoySound";
 
 export default function App() {
-  const [scale, setScale] = useState(1);
-  const [currentState, setCurrentState] = useState<GameBoyState>("OFF");
-  const [bootStep, setBootStep] = useState(0); // 0: None, 1: GAME BOY, 2: Booting...
-  const [selectedPowerOption, setSelectedPowerOption] = useState<"YES" | "NO">("NO");
-  const [osActiveIndex, setOsActiveIndex] = useState(0); // 0 to 4
+  const {
+    currentScreen,
+    bootStep,
+    selectedMenuItem,
+    powerOption,
+    powerOn,
+    powerOff,
+    navigateTo,
+    setSelectedMenuItem,
+    setPowerOption,
+  } = useGameBoyStore();
 
+  const { init: initAudio, play } = useGameBoySound();
+
+  // Calculate scale based on window size
+  const [scale, setScale] = useState(1);
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       const targetWidth = 220;
       const targetHeight = 362;
-      const padding = 40;
 
-      const scaleX = (width - padding) / targetWidth;
-      const scaleY = (height - padding) / targetHeight;
-      const newScale = Math.min(scaleX, scaleY, 1.5);
+      const scaleX = (width * 0.85) / targetWidth;
+      const scaleY = (height * 0.85) / targetHeight;
+      const newScale = Math.min(scaleX, scaleY);
 
       setScale(newScale);
     };
@@ -30,67 +39,119 @@ export default function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    if (currentState === "BOOTING") {
-      setBootStep(1);
-      const t1 = setTimeout(() => setBootStep(2), 1500);
-      const t2 = setTimeout(() => {
-        setBootStep(0);
-        setCurrentState("MAIN_MENU");
-      }, 3500); // 1.5s + 2s as requested
+  const handleAction = useCallback((type: string) => {
+    // Initialize audio on first user interaction
+    initAudio();
 
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
+    const isRelease = type.endsWith("_RELEASE");
+    const baseType = isRelease ? type.replace("_RELEASE", "") : type;
+
+    // GLOBAL ON/OFF INTERCEPT
+    if (baseType === "MENU" && !isRelease) {
+      if (currentScreen === "OFF") {
+        play("POWER_ON");
+        powerOn();
+      } else if (currentScreen !== "BOOTING") {
+        play("SELECT");
+        navigateTo("POWER_CONFIRM");
+        setPowerOption("NO");
+      }
+      return;
     }
-  }, [currentState]);
 
-  const handleAction = useCallback(
-    (type: string) => {
-      if (currentState === "OFF") {
-        if (type === "MENU") {
-          setCurrentState("BOOTING");
-        }
-        return; // No other buttons respond when OFF
+    // If powered off or booting, ignore everything else
+    if (currentScreen === "OFF" || currentScreen === "BOOTING") return;
+
+    // GLOBAL QUIT INTERCEPT
+    if (!isRelease && baseType === "QUIT_GAME") {
+      play("BACK");
+      if (currentScreen !== "MAIN_MENU" && currentScreen !== "POWER_CONFIRM") {
+        navigateTo("MAIN_MENU");
+        return;
       }
+    }
 
-      if (currentState === "BOOTING") {
-        return; // No buttons respond during BOOTING (except possibly system refresh)
+    // STATE-SPECIFIC ACTIONS
+    if (currentScreen === "MAIN_MENU") {
+      if (isRelease) return;
+
+      if (baseType === "UP") {
+        play("MOVE");
+        setSelectedMenuItem(selectedMenuItem <= 0 ? 4 : selectedMenuItem - 1);
+      } else if (baseType === "DOWN") {
+        play("MOVE");
+        setSelectedMenuItem(selectedMenuItem >= 4 ? 0 : selectedMenuItem + 1);
+      } else if (baseType === "A" || baseType === "START") {
+        play("CONFIRM");
+        const screens: Array<"PLAYING_SNAKE" | "PLAYING_TETRIS" | "PLAYING_MARIO" | "VIEWING_STATS" | "VIEWING_SETTINGS"> = 
+          ["PLAYING_SNAKE", "PLAYING_TETRIS", "PLAYING_MARIO", "VIEWING_STATS", "VIEWING_SETTINGS"];
+        navigateTo(screens[selectedMenuItem]);
       }
+      return;
+    }
 
-      if (currentState === "MAIN_MENU") {
-        if (type === "UP") {
-          setOsActiveIndex((prev) => (prev === 0 ? 4 : prev - 1)); // Wrap to bottom
-        } else if (type === "DOWN") {
-          setOsActiveIndex((prev) => (prev === 4 ? 0 : prev + 1)); // Wrap to top
-        } else if (type === "A") {
-          // If 'Power Off' (index 4) is selected
-          if (osActiveIndex === 4) {
-             setCurrentState("POWER_CONFIRM");
-             setSelectedPowerOption("NO");
-          }
-        }
+    if (currentScreen === "PLAYING_SNAKE") {
+      if (isRelease) return;
+      const snakeInput = (window as any).__snakeInput;
+      if (snakeInput) snakeInput(baseType);
+      return;
+    }
+
+    if (currentScreen === "PLAYING_TETRIS") {
+      if (isRelease) return;
+      const tetrisInput = (window as any).__tetrisInput;
+      if (tetrisInput) tetrisInput(baseType);
+      return;
+    }
+
+    if (currentScreen === "PLAYING_MARIO") {
+      if (baseType === "START" && !isRelease) {
+        play("BACK");
+        navigateTo("MAIN_MENU");
+        return;
+      }
+      const nesInput = (window as any).__nesInput;
+      if (nesInput && ["UP", "DOWN", "LEFT", "RIGHT", "A", "B"].includes(baseType)) {
+        nesInput(baseType, !isRelease);
+      }
+      return;
+    }
+
+    if (currentScreen === "VIEWING_STATS" || currentScreen === "VIEWING_SETTINGS") {
+      if (isRelease) return;
+      if (baseType === "B" || baseType === "QUIT_GAME") {
+        play("BACK");
+        navigateTo("MAIN_MENU");
         return;
       }
 
-      if (currentState === "POWER_CONFIRM") {
-        if (type === "UP" || type === "DOWN") {
-          setSelectedPowerOption((prev) => (prev === "YES" ? "NO" : "YES"));
-        } else if (type === "B") {
-          setCurrentState("MAIN_MENU");
-        } else if (type === "A") {
-          if (selectedPowerOption === "YES") {
-            setCurrentState("OFF");
-          } else {
-            setCurrentState("MAIN_MENU");
-          }
-        }
-        return;
+      if (currentScreen === "VIEWING_SETTINGS") {
+        const settingsInput = (window as any).__settingsInput;
+        if (settingsInput) settingsInput(baseType);
       }
-    },
-    [currentState, selectedPowerOption, osActiveIndex]
-  );
+      return;
+    }
+
+    if (currentScreen === "POWER_CONFIRM") {
+      if (isRelease) return;
+      if (baseType === "UP" || baseType === "DOWN") {
+        play("MOVE");
+        setPowerOption(powerOption === "YES" ? "NO" : "YES");
+      } else if (baseType === "B") {
+        play("BACK");
+        navigateTo("MAIN_MENU");
+      } else if (baseType === "A") {
+        if (powerOption === "YES") {
+          play("POWER_OFF");
+          powerOff();
+        } else {
+          play("BACK");
+          navigateTo("MAIN_MENU");
+        }
+      }
+      return;
+    }
+  }, [currentScreen, selectedMenuItem, powerOption, initAudio, play, powerOn, powerOff, navigateTo, setSelectedMenuItem, setPowerOption]);
 
   return (
     <div
@@ -119,7 +180,13 @@ export default function App() {
             flexShrink: 0,
           }}
         >
-          <GameBoy state={currentState} bootStep={bootStep} onAction={handleAction} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} />
+          <GameBoy
+            state={currentScreen}
+            bootStep={bootStep}
+            onAction={handleAction}
+            selectedPowerOption={powerOption}
+            osActiveIndex={selectedMenuItem}
+          />
         </div>
       </div>
     </div>

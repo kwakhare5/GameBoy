@@ -1,0 +1,459 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+:root {
+  --font: "Press Start 2P", monospace;
+  --bg: #060c1a;
+  --orange: #ff8c00;
+  --gold: #ffd700;
+  --text: #c8e0ff;
+  --dim: #3a5888;
+  --border: #1a3060;
+  --row-h: 24px;
+}
+
+/* Base styles are applied directly to the container in React, not body/html */
+
+/* pixel grid bg */
+.vintage-screen-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 80, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 80, 255, 0.06) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.vintage-screen-glow {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 120px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse,
+    rgba(255, 100, 0, 0.15) 0%,
+    transparent 70%
+  );
+  animation: gp 3s ease-in-out infinite;
+}
+
+@keyframes gp {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* scanlines */
+.vintage-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 3px
+  );
+}
+
+/* glare */
+.vintage-glare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  z-index: 51;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    transparent 100%
+  );
+}
+
+/* vignette - disabled for visibility */
+.vintage-vignette {
+  display: none;
+}
+
+/* ── LAYOUT ── */
+.vintage-ui {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* HUD — 12px (FIXED TOP) */
+.vintage-hud {
+  height: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  background-color: var(--bg) !important;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 200;
+}
+
+.vintage-hud::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  opacity: 0.6;
+}
+
+.vintage-hud-sys {
+  font-size: 3.5px;
+  color: var(--orange);
+  letter-spacing: 1px;
+}
+.vintage-hud-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vintage-bat {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.vintage-bat-s {
+  width: 2px;
+  height: 4px;
+  background: var(--orange);
+  border-radius: 1px;
+  box-shadow: 0 0 2px var(--orange);
+}
+.vintage-bat-s.e {
+  background: rgba(255, 140, 0, 0.2);
+  box-shadow: none;
+}
+.vintage-bat-c {
+  width: 1px;
+  height: 2px;
+  background: var(--dim);
+  border-radius: 0 1px 1px 0;
+}
+.vintage-bat-n {
+  font-size: 3.5px;
+  color: var(--orange);
+}
+
+.vintage-hud-time {
+  font-size: 3.5px;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+
+/* CONTENT AREA - Scrollable middle section */
+.vintage-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* TITLE ROW - For screens that need it */
+.vintage-title-row {
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(6, 12, 26, 0.8);
+  border-bottom: 1px solid var(--border);
+}
+
+.vintage-title-main {
+  font-size: 7px;
+  color: #fff;
+  letter-spacing: 2px;
+  text-shadow:
+    0 0 12px rgba(255, 140, 0, 0.7),
+    0 0 24px rgba(255, 140, 0, 0.3);
+}
+
+.vintage-title-tag {
+  font-size: 4px;
+  color: var(--orange);
+  letter-spacing: 2px;
+  opacity: 0.8;
+}
+
+/* MAIN AREA - Content within content area */
+.vintage-main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* HINTS — 12px (FIXED BOTTOM) */
+.vintage-hints {
+  height: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--bg) !important;
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 200;
+}
+
+/* LEFT MENU — 136px */
+.vintage-menu-col {
+  width: 136px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.vintage-menu-row {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  gap: 4px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.vintage-menu-row.active {
+  background: var(--orange);
+}
+.vintage-menu-row.active .vintage-row-name {
+  color: #000;
+}
+.vintage-menu-row.active .vintage-row-tag {
+  color: rgba(0, 0, 0, 0.5);
+}
+.vintage-menu-row.active .vintage-row-cursor {
+  opacity: 1;
+}
+
+.vintage-row-cursor {
+  font-size: 4px;
+  color: #000;
+  opacity: 0;
+  width: 6px;
+  flex-shrink: 0;
+  animation: bc 0.7s step-end infinite;
+}
+
+@keyframes bc {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.vintage-row-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vintage-row-icon canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.vintage-row-icon img,
+.vintage-icon-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: contain;
+  transform: scale(1.5);
+}
+
+.vintage-icon-wrapper svg {
+  color: var(--orange);
+}
+
+.vintage-row-name {
+  font-size: 5px;
+  color: var(--text);
+  flex: 1;
+  letter-spacing: 0.5px;
+}
+.vintage-row-tag {
+  font-size: 4px;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+.vintage-menu-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 4px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* RIGHT PREVIEW */
+.vintage-preview-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px 2px;
+  gap: 3px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.vintage-prev-art {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.vintage-prev-art canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.vintage-prev-art img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.vintage-prev-art-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  box-shadow: inset 0 0 10px rgba(255, 140, 0, 0.2);
+  pointer-events: none;
+}
+
+.vintage-prev-name {
+  font-size: 5px;
+  color: var(--orange);
+  letter-spacing: 0.5px;
+  text-align: center;
+  width: 100%;
+}
+
+.vintage-prev-genre {
+  font-size: 4px;
+  color: var(--dim);
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.vintage-prev-stats {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.vintage-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.vintage-stat-label {
+  font-size: 3.5px;
+  color: var(--dim);
+}
+.vintage-stat-val {
+  font-size: 3.5px;
+  color: var(--gold);
+}
+
+.vintage-hints::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  opacity: 0.5;
+}
+
+/* Blink animation */
+@keyframes bl {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* GP animation for AI badge */
+@keyframes gp {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.vintage-hint {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.vintage-hk {
+  font-size: 3.5px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+  padding: 0px 2px;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+
+.vintage-ha {
+  font-size: 3.5px;
+  color: var(--dim);
+}

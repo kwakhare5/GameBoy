@@ -1,72 +1,128 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import { ChartColumnIncreasing, Settings } from "lucide-react";
+import OSLayout from "./components/OSLayout";
+import "../styles/VintageOS.css";
 
 interface VintageOSProps {
   activeIndex: number;
 }
 
+// ── DATA ──
+const menuItems = [
+  {
+    id: "snake",
+    name: "SNAKE",
+    genre: "SURVIVAL",
+    hs: "9840",
+    plays: "47",
+    tag: "●●●",
+    img: "/images/covers/snake_2-removebg-preview.png",
+  },
+  {
+    id: "tetris",
+    name: "TETRIS",
+    genre: "PUZZLE",
+    hs: "24500",
+    plays: "31",
+    tag: "●●●",
+    img: "/images/covers/tetris-removebg-preview.png",
+  },
+  {
+    id: "mario",
+    name: "MARIO",
+    genre: "ACTION",
+    hs: "18200",
+    plays: "62",
+    tag: "●●●",
+    img: "/images/covers/Mario_1-removebg-preview.png",
+  },
+  {
+    id: "stats",
+    name: "STATS",
+    genre: "RECORDS",
+    hs: "--",
+    plays: "--",
+    tag: "★★★",
+    img: "/images/covers/Gemini_Generated_Image_gabt1wgabt1wgabt-removebg-preview.png",
+    icon: <ChartColumnIncreasing size={12} />,
+  },
+  {
+    id: "settings",
+    name: "CONFIG",
+    genre: "SYSTEM",
+    hs: "--",
+    plays: "--",
+    tag: "⚙⚙",
+    img: "/images/covers/Gemini_Generated_Image_n3tdqfn3tdqfn3td-removebg-preview.png",
+    icon: <Settings size={12} />,
+  },
+];
+
+// Pixel art rendering logic removed in favor of uploaded cover images.
+
 export default function VintageOS({ activeIndex }: VintageOSProps) {
-  const menuItems = ["Snake", "Tetris", "Stats", "Settings", "Power Off"];
-  
-  // A simple blink effect for the cursor
-  const [cursorVisible, setCursorVisible] = useState(true);
-  
-  useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      setCursorVisible((v) => !v);
-    }, 500); // 500ms blink rate
-    return () => clearInterval(blinkInterval);
-  }, []);
+  const activeData = menuItems[activeIndex] || menuItems[0];
 
   return (
-    <div 
-      className="absolute inset-0 flex flex-col font-['Press_Start_2P',sans-serif] select-none overflow-hidden"
-      style={{
-        backgroundColor: "#1E2235", // Deep Slate Blue
-        color: "#E8EDF2",           // Warm Cream
-        padding: "8px", 
-      }}
-    >
-      {/* Top spacing to push menu down slightly */}
-      <div className="flex-1 flex flex-col justify-center px-4">
-        <div className="flex flex-col gap-3">
-          {menuItems.map((item, index) => {
-            const isActive = index === activeIndex;
-            return (
-              <div 
-                key={item} 
-                className="flex items-center gap-2"
-                style={{
-                  color: isActive ? "#D49A6A" : "#E8EDF2", // Warm Wood for active, Cream for inactive
-                  textShadow: isActive ? "0px 1px 0px rgba(0,0,0,0.5)" : "none",
-                }}
-              >
-                {/* Cursor column (fixed width to keep text aligned) */}
-                <span className="w-3 text-[10px] leading-none mb-[2px]">
-                  {isActive && cursorVisible ? ">" : ""}
-                </span>
-                
-                {/* Text column */}
-                <span className="text-[12px] leading-none tracking-tighter">
-                  {item}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+    <OSLayout>
+      {/* Title Row */}
+      <div className="vintage-title-row">
+        <span className="vintage-title-main">GAME BOY</span>
+        <span className="vintage-title-tag">SELECT</span>
       </div>
 
-      {/* Bottom System Info Bar */}
-      <div 
-        className="h-[14px] flex items-center justify-between border-t border-[#E8EDF2]/20 pt-1 px-1"
-        style={{
-          fontSize: "6px",
-          color: "#E8EDF2",
-          opacity: 0.7,
-        }}
-      >
-        <span>Firmware v1.0</span>
-        <span>Last Played: Snake</span>
+      {/* Main Area */}
+      <div className="vintage-main-area">
+        {/* Left Menu */}
+        <nav className="vintage-menu-col">
+          {menuItems.map((item, i) => {
+            const isActive = i === activeIndex;
+            return (
+              <React.Fragment key={item.id}>
+                {i === 3 && <div className="vintage-menu-sep"></div>}
+                <div className={`vintage-menu-row ${isActive ? "active" : ""}`}>
+                  <span className="vintage-row-cursor">▶</span>
+                  <div className="vintage-row-icon">
+                    {item.img ? (
+                      <img src={item.img} alt={item.name} />
+                    ) : item.icon ? (
+                      <div className="vintage-icon-wrapper">{item.icon}</div>
+                    ) : (
+                      <div className="vintage-icon-placeholder" />
+                    )}
+                  </div>
+                  <span className="vintage-row-name">{item.name}</span>
+                  <span className="vintage-row-tag">{item.tag}</span>
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </nav>
+
+        {/* Right Preview */}
+        <div className="vintage-preview-col">
+          <div className="vintage-prev-art">
+            {activeData.img ? (
+              <img src={activeData.img} alt={activeData.name} />
+            ) : (
+              <div className="vintage-icon-placeholder" />
+            )}
+            <div className="vintage-prev-art-glow"></div>
+          </div>
+          <div className="vintage-prev-name">{activeData.name}</div>
+          <div className="vintage-prev-genre">{activeData.genre}</div>
+          <div className="vintage-prev-stats">
+            <div className="vintage-stat-row">
+              <span className="vintage-stat-label">HI-SC</span>
+              <span className="vintage-stat-val">{activeData.hs}</span>
+            </div>
+            <div className="vintage-stat-row">
+              <span className="vintage-stat-label">PLAYS</span>
+              <span className="vintage-stat-val">{activeData.plays}</span>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </OSLayout>
   );
 }

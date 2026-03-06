@@ -1,8 +1,13 @@
 import svgPaths from "./svg-lmu6lkplfc";
 import VintageOS from "../app/VintageOS";
+import SnakeGame from "../app/SnakeGame";
+import TetrisGame from "../app/TetrisGame";
+import NESEmulator from "../app/NESEmulator";
+import StatsScreen from "../app/StatsScreen";
+import SettingsScreen from "../app/SettingsScreen";
 
 interface GameBoyProps {
-  state: "OFF" | "BOOTING" | "MAIN_MENU" | "POWER_CONFIRM";
+  state: "OFF" | "BOOTING" | "MAIN_MENU" | "POWER_CONFIRM" | "PLAYING_SNAKE" | "PLAYING_TETRIS" | "PLAYING_MARIO" | "VIEWING_STATS" | "VIEWING_SETTINGS";
   bootStep: number;
   onAction: (type: string) => void;
   selectedPowerOption: "YES" | "NO";
@@ -164,6 +169,12 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
             </linearGradient>
           </defs>
         </svg>
+
+        {/* Expanded Hitboxes for D-Pad - MASSIVELY INCREASED forgiving touches */}
+        <div className="absolute left-[20px] top-[-20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("UP")} onPointerUp={() => onAction("UP_RELEASE")} onPointerLeave={() => onAction("UP_RELEASE")} />
+        <div className="absolute left-[20px] bottom-[-20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("DOWN")} onPointerUp={() => onAction("DOWN_RELEASE")} onPointerLeave={() => onAction("DOWN_RELEASE")} />
+        <div className="absolute left-[-20px] top-[20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("LEFT")} onPointerUp={() => onAction("LEFT_RELEASE")} onPointerLeave={() => onAction("LEFT_RELEASE")} />
+        <div className="absolute right-[-20px] top-[20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("RIGHT")} onPointerUp={() => onAction("RIGHT_RELEASE")} onPointerLeave={() => onAction("RIGHT_RELEASE")} />
       </div>
     </div>
   );
@@ -202,8 +213,8 @@ function Button1({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[66.8px] top-[226.64px] w-[25.2px]"
       data-name="Button"
-      onClick={() => onAction("X")}
     >
+      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("X")} onPointerUp={() => onAction("X_RELEASE")} onPointerLeave={() => onAction("X_RELEASE")} />
       <Button2 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
         <p className="leading-[1.2]">X</p>
@@ -237,8 +248,8 @@ function Button3({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[43.4px] top-[203px] w-[25.2px]"
       data-name="Button"
-      onClick={() => onAction("Y")}
     >
+      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("Y")} onPointerUp={() => onAction("Y_RELEASE")} onPointerLeave={() => onAction("Y_RELEASE")} />
       <Button4 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
         <p className="leading-[1.2]">Y</p>
@@ -272,8 +283,8 @@ function Button5({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[20px] top-[226.64px] w-[25.2px]"
       data-name="Button"
-      onClick={() => onAction("B")}
     >
+      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("B")} onPointerUp={() => onAction("B_RELEASE")} onPointerLeave={() => onAction("B_RELEASE")} />
       <Button6 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
         <p className="leading-[1.2]">B</p>
@@ -307,8 +318,8 @@ function Button7({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[43.4px] top-[250.27px] w-[25.2px]"
       data-name="Button"
-      onClick={() => onAction("A")}
     >
+      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("A")} onPointerUp={() => onAction("A_RELEASE")} onPointerLeave={() => onAction("A_RELEASE")} />
       <Button8 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
         <p className="leading-[1.2]">A</p>
@@ -361,11 +372,11 @@ function Button9({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="-translate-x-1/2 absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[28px] items-center left-1/2 top-[187px] w-[22px]"
       data-name="Button"
-      onClick={() => onAction("MENU")}
     >
+      <div className="absolute -inset-5 z-10" onClick={() => onAction("MENU")} />
       <Button10 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">MENU</p>
+        <p className="leading-[1.2]">ON/OFF</p>
       </div>
     </div>
   );
@@ -404,8 +415,8 @@ function Button12({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="content-stretch cursor-pointer flex flex-col gap-[2px] h-[22px] items-center relative w-[32px]"
       data-name="Button"
-      onClick={() => onAction("SELECT")}
     >
+      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("SELECT")} onPointerUp={() => onAction("SELECT_RELEASE")} onPointerLeave={() => onAction("SELECT_RELEASE")} />
       <Button13 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
         <p className="leading-[1.2]">Select</p>
@@ -459,8 +470,8 @@ function Button15({ onAction }: { onAction: (type: string) => void }) {
     <div
       className="content-stretch cursor-pointer flex flex-col gap-[2px] h-[22px] items-center relative w-[32px]"
       data-name="Button"
-      onClick={() => onAction("START")}
     >
+      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("START")} onPointerUp={() => onAction("START_RELEASE")} onPointerLeave={() => onAction("START_RELEASE")} />
       <Button16 />
       <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
         <p className="leading-[1.2]">Start</p>
@@ -486,26 +497,51 @@ function Frame({
   bootStep,
   selectedPowerOption,
   osActiveIndex,
+  onAction,
 }: {
   state: string;
   bootStep: number;
   selectedPowerOption: string;
   osActiveIndex: number;
+  onAction: (type: string) => void;
 }) {
   return (
-    <div className="absolute bg-[#1b1b1b] flex flex-col items-center justify-center overflow-hidden rounded-[1px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] top-[10px] bottom-[10.37px] left-[10px] right-[10px]">
+    <div className="absolute bg-[#1b1b1b] flex flex-col items-center justify-center overflow-hidden rounded-[4px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] top-[6px] bottom-[6px] left-[6px] right-[6px]">
       {state === "OFF" && <div className="absolute inset-0 bg-black" />}
 
       {state === "BOOTING" && (
-        <div className="flex flex-col items-center gap-2">
-          <div className="font-['IBM_Plex_Mono:Bold',sans-serif] text-[20px] text-[#e0dbd1] tracking-widest animate-pulse">
-            GAME BOY
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center font-['Press_Start_2P',sans-serif] z-50 overflow-hidden bg-[var(--bg)]">
           {bootStep === 2 && (
-            <div className="font-['IBM_Plex_Mono',sans-serif] text-[10px] text-[#e0dbd1] opacity-80">
-              Booting...
-            </div>
+            <>
+              <div className="vintage-screen-bg" />
+              <div className="vintage-scanlines" />
+              <div className="vintage-vignette" />
+              <div className="vintage-screen-glow" />
+            </>
           )}
+
+          <div className={`flex flex-col items-center gap-3 transition-all duration-1000 ease-out ${bootStep >= 1 ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 -translate-y-4"} z-10 relative`}>
+             
+             {/* Main Logo */}
+             <div className="relative">
+                <div className="vintage-title-main text-[14px] drop-shadow-[0_2px_0px_#1e3a8a] tracking-widest font-black italic">
+                  GameBoy
+                </div>
+                <div className="vintage-title-main text-[14px] drop-shadow-[0_2px_0px_#1e3a8a] tracking-widest font-black italic absolute top-0 left-0 animate-pulse mix-blend-overlay">
+                  GameBoy
+                </div>
+             </div>
+
+             <div className="text-[8px] text-[var(--orange)] tracking-widest mt-[-2px] border-y border-[var(--orange)] py-[2px] w-full text-center bg-[rgba(6,12,26,0.6)] shadow-[0_0_8px_rgba(255,140,0,0.5)] backdrop-blur-[1px]">
+               VINTAGE OS
+             </div>
+
+             {bootStep === 2 && (
+               <div className="text-[4px] text-[var(--text)] tracking-[2px] mt-6 opacity-70 animate-pulse">
+                 LICENSED BY GameBoy INC.
+               </div>
+             )}
+          </div>
         </div>
       )}
 
@@ -513,26 +549,48 @@ function Frame({
         <VintageOS activeIndex={osActiveIndex} />
       )}
 
+      {state === "PLAYING_SNAKE" && (
+        <SnakeGame onAction={onAction} />
+      )}
+
+      {state === "PLAYING_TETRIS" && (
+        <TetrisGame onAction={onAction} />
+      )}
+
+      {state === "PLAYING_MARIO" && (
+        <NESEmulator onAction={onAction} />
+      )}
+      
+      {state === "VIEWING_SETTINGS" && (
+        <SettingsScreen onAction={onAction} />
+      )}
+      
+      {state === "VIEWING_STATS" && (
+        <StatsScreen />
+      )}
+
       {state === "POWER_CONFIRM" && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80">
-          <div className="flex flex-col items-center bg-[#c8c5c2] p-4 rounded-sm border-2 border-[#1b1b1b]">
-            <div className="font-['IBM_Plex_Mono:Bold',sans-serif] text-[12px] text-[#1b1b1b] mb-4">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#060c1a]/95 backdrop-blur-[2px]">
+          <div className="vintage-scanlines" />
+          <div className="flex flex-col items-center bg-[var(--bg)] p-[12px] rounded-sm border border-[rgba(255,140,0,0.6)] shadow-[0_0_15px_rgba(255,140,0,0.4)] w-[160px] z-10 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,140,0,0.1),transparent)] pointer-events-none" />
+            <div className="vintage-title-main text-[9px] tracking-widest mb-[16px] text-center">
               POWER OFF?
             </div>
-            <div className="flex flex-col items-start gap-2 w-full">
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] ${selectedPowerOption === "NO" ? "visible" : "invisible"}`}>
+            <div className="flex flex-col items-start gap-[12px] w-[50px] font-['Press_Start_2P',sans-serif]">
+              <div className="flex items-center gap-[6px]">
+                <span className={`text-[8px] ${selectedPowerOption === "NO" ? "text-[var(--orange)] visible animate-pulse" : "invisible"}`}>
                   {">"}
                 </span>
-                <span className={`font-['IBM_Plex_Mono',sans-serif] text-[10px] ${selectedPowerOption === "NO" ? "font-bold text-red-600" : "text-[#1b1b1b]"}`}>
+                <span className={`text-[7px] tracking-widest ${selectedPowerOption === "NO" ? "text-[var(--text)]" : "text-white/40"}`}>
                   NO
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] ${selectedPowerOption === "YES" ? "visible" : "invisible"}`}>
+              <div className="flex items-center gap-[6px]">
+                <span className={`text-[8px] ${selectedPowerOption === "YES" ? "text-red-500 visible animate-pulse" : "invisible"}`}>
                   {">"}
                 </span>
-                <span className={`font-['IBM_Plex_Mono',sans-serif] text-[10px] ${selectedPowerOption === "YES" ? "font-bold text-red-600" : "text-[#1b1b1b]"}`}>
+                <span className={`text-[7px] tracking-widest ${selectedPowerOption === "YES" ? "text-red-500" : "text-red-500/40"}`}>
                   YES
                 </span>
               </div>
@@ -549,18 +607,20 @@ function ScreenContainer({
   bootStep,
   selectedPowerOption,
   osActiveIndex,
+  onAction,
 }: {
   state: string;
   bootStep: number;
   selectedPowerOption: string;
   osActiveIndex: number;
+  onAction: (type: string) => void;
 }) {
   return (
     <div
-      className="-translate-y-1/2 absolute aspect-[246/190] bg-[#080808] left-[6px] overflow-clip right-[6px] rounded-[6px] shadow-[0px_1px_1px_0px_rgba(255,255,255,0.5)] top-[calc(50%-90.81px)]"
+      className="absolute aspect-[246/196] bg-[#080808] left-[8px] overflow-clip right-[8px] rounded-[6px] shadow-[0px_1px_1px_0px_rgba(255,255,255,0.5)] top-[12px]"
       data-name="Screen container"
     >
-      <Frame state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} />
+      <Frame state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} onAction={onAction} />
       <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_2px_2px_2px_0px_rgba(0,0,0,0.5),inset_-2px_2px_2px_0px_rgba(255,255,255,0.25)]" />
     </div>
   );
@@ -647,7 +707,7 @@ export default function GameBoy({ state, bootStep, onAction, selectedPowerOption
       <Button9 onAction={onAction} />
       <Group2 onAction={onAction} />
       <Group1 onAction={onAction} />
-      <ScreenContainer state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} />
+      <ScreenContainer state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} onAction={onAction} />
       <Group />
       <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_-2px_2px_4px_0px_rgba(0,0,0,0.25),inset_0px_-2px_4px_0px_rgba(0,0,0,0.25),inset_2px_0px_4px_0px_rgba(255,255,255,0.5)]" />
     </div>
