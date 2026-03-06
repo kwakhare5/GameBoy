@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import OSLayout from "./components/OSLayout";
 
 // --- Constants ---
 const TILE = 16; 
@@ -226,33 +227,62 @@ export default function PlatformerGame({ onAction }: { onAction: (type: string) 
   }, [phase, aiEnabled]);
 
   return (
-    <div className="absolute inset-0 bg-[#5c94fc] font-['Press_Start_2P',sans-serif] overflow-hidden">
-      {phase === "START" && <div className="absolute inset-0 bg-black z-[100] flex flex-col items-center justify-center">
-         <div className="text-[12px] text-white font-black italic mb-2 tracking-tighter drop-shadow-[2px_2px_#e40010]">SUPER AI MARIO</div>
-         <div className="text-[5px] text-[#ffcc00] animate-pulse">PRESS A TO START</div>
-      </div>}
-      <div className="absolute top-1 left-2 text-[5px] text-white z-30 drop-shadow-[1px_1px_black]">MARIO {String(score).padStart(6,'0')}</div>
-      <div className="absolute top-1 left-1/2 -translate-x-1/2 text-[5px] text-white z-30 drop-shadow-[1px_1px_black]">🪙x{coins}</div>
-      <div className="absolute top-1 right-2 text-[5px] text-white z-30 drop-shadow-[1px_1px_black]">LIVES x{lives}</div>
-      <div className="absolute inset-0" style={{ transform: `translateX(-${cameraX}px)` }}>
-        {level.map((col, x) => col.map((t, y) => {
-          if (t === 0) return null; let color = "#944018"; 
-          if (t === 4) color = (anim % 40 < 20) ? "#f8d870" : "#f8b800";
-          if (t >= 5 && t <= 8) color = "#00a800";
-          if (t === 9) return <div key={`${x}-${y}`} className="absolute bg-white w-[2px] h-[100px]" style={{ left: x*TILE+7, top: y*TILE }}><div className="size-2 bg-red-600 absolute -left-1" /></div>;
-          if (t === 10) return <div key={`${x}-${y}`} className="absolute bg-white/30 rounded-full w-8 h-3" style={{ left: x*TILE, top: y*TILE+32 }} />;
-          if (t === 11) return <div key={`${x}-${y}`} className="absolute bg-[#00a800]/50 rounded-t-full w-6 h-3" style={{ left: x*TILE, top: y*TILE+13 }} />;
-          return <div key={`${x}-${y}`} style={{ position: "absolute", left: x*TILE, top: y*TILE, width: TILE, height: TILE, background: color, border: "0.5px solid rgba(0,0,0,0.2)" }} />;
-        }))}
-        {enemies.map((e, i) => (e.alive || e.s > 0) ? <div key={i} style={{ position: "absolute", left: e.x, top: e.y+(e.alive?0:10), width: 14, height: e.alive?14:4, background: '#944018', borderRadius: e.alive?"4px 4px 0 0":"2px", border: "1px solid black" }} /> : null)}
-        <div style={{ position: "absolute", left: playerX - cameraX + cameraX, top: playerY, width: PW, height: PH, transform: facingRight ? "" : "scaleX(-1)", zIndex: 25 }}>
-          <div style={{ position: "absolute", inset: 0, boxShadow: `2px 0 0 #e40010, 4px 0 0 #e40010, 6px 0 0 #e40010, 2px 2px 0 #fac490, 4px 2px 0 #fac490, 6px 2px 0 black, 8px 2px 0 #fac490, 0px 4px 0 #fac490, 2px 4px 0 #fac490, 4px 4px 0 #fac490, 6px 4px 0 #fac490, 8px 4px 0 #fac490, 2px 6px 0 #e40010, 4px 6px 0 #0050c0, 6px 6px 0 #e40010, 0px 8px 0 #0050c0, 2px 8px 0 #e40010, 4px 8px 0 #0050c0, 6px 8px 0 #e40010, 8px 8px 0 #0050c0, 0px 10px 0 #0050c0, 2px 10px 0 #0050c0, 4px 10px 0 #0050c0, 6px 10px 0 #0050c0, 8px 10px 0 #0050c0, 2px 12px 0 #7c4c00, 6px 12px 0 #7c4c00, 0px 14px 0 #7c4c00, 2px 14px 0 #7c4c00, 6px 14px 0 #7c4c00, 8px 14px 0 #7c4c00` }} />
+    <OSLayout
+      customHints={
+        <>
+          <div className="vintage-hint">
+            <span className="vintage-hk">D-PAD</span>
+            <span className="vintage-ha">MOVE</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">A</span>
+            <span className="vintage-ha">JUMP</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">B</span>
+            <span className="vintage-ha">RUN</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">START</span>
+            <span className="vintage-ha">START</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">SEL</span>
+            <span className="vintage-ha">AI</span>
+          </div>
+        </>
+      }
+    >
+      <div className="vintage-main-area">
+        <div className="absolute inset-0 bg-[#5c94fc] font-['Press_Start_2P',sans-serif] overflow-hidden">
+          {phase === "START" && <div className="absolute inset-0 bg-black z-[100] flex flex-col items-center justify-center">
+             <div className="text-[12px] text-white font-black italic mb-2 tracking-tighter drop-shadow-[2px_2px_#e40010]">SUPER AI MARIO</div>
+             <div className="text-[5px] text-[#ffcc00] animate-pulse">PRESS A TO START</div>
+          </div>}
+          <div className="absolute top-1 left-2 text-[5px] text-white z-30 drop-shadow-[1px_1px_black]">MARIO {String(score).padStart(6,'0')}</div>
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 text-[5px] text-white z-30 drop-shadow-[1px_1px_black]">🪙x{coins}</div>
+          <div className="absolute top-1 right-2 text-[5px] text-white z-30 drop-shadow-[1px_1px_black]">LIVES x{lives}</div>
+          <div className="absolute inset-0" style={{ transform: `translateX(-${cameraX}px)` }}>
+            {level.map((col, x) => col.map((t, y) => {
+              if (t === 0) return null; let color = "#944018";
+              if (t === 4) color = (anim % 40 < 20) ? "#f8d870" : "#f8b800";
+              if (t >= 5 && t <= 8) color = "#00a800";
+              if (t === 9) return <div key={`${x}-${y}`} className="absolute bg-white w-[2px] h-[100px]" style={{ left: x*TILE+7, top: y*TILE }}><div className="size-2 bg-red-600 absolute -left-1" /></div>;
+              if (t === 10) return <div key={`${x}-${y}`} className="absolute bg-white/30 rounded-full w-8 h-3" style={{ left: x*TILE, top: y*TILE+32 }} />;
+              if (t === 11) return <div key={`${x}-${y}`} className="absolute bg-[#00a800]/50 rounded-t-full w-6 h-3" style={{ left: x*TILE, top: y*TILE+13 }} />;
+              return <div key={`${x}-${y}`} style={{ position: "absolute", left: x*TILE, top: y*TILE, width: TILE, height: TILE, background: color, border: "0.5px solid rgba(0,0,0,0.2)" }} />;
+            }))}
+            {enemies.map((e, i) => (e.alive || e.s > 0) ? <div key={i} style={{ position: "absolute", left: e.x, top: e.y+(e.alive?0:10), width: 14, height: e.alive?14:4, background: '#944018', borderRadius: e.alive?"4px 4px 0 0":"2px", border: "1px solid black" }} /> : null)}
+            <div style={{ position: "absolute", left: playerX - cameraX + cameraX, top: playerY, width: PW, height: PH, transform: facingRight ? "" : "scaleX(-1)", zIndex: 25 }}>
+              <div style={{ position: "absolute", inset: 0, boxShadow: `2px 0 0 #e40010, 4px 0 0 #e40010, 6px 0 0 #e40010, 2px 2px 0 #fac490, 4px 2px 0 #fac490, 6px 2px 0 black, 8px 2px 0 #fac490, 0px 4px 0 #fac490, 2px 4px 0 #fac490, 4px 4px 0 #fac490, 6px 4px 0 #fac490, 8px 4px 0 #fac490, 2px 6px 0 #e40010, 4px 6px 0 #0050c0, 6px 6px 0 #e40010, 0px 8px 0 #0050c0, 2px 8px 0 #e40010, 4px 8px 0 #0050c0, 6px 8px 0 #e40010, 8px 8px 0 #0050c0, 0px 10px 0 #0050c0, 2px 10px 0 #0050c0, 4px 10px 0 #0050c0, 6px 10px 0 #0050c0, 8px 10px 0 #0050c0, 2px 12px 0 #7c4c00, 6px 12px 0 #7c4c00, 0px 14px 0 #7c4c00, 2px 14px 0 #7c4c00, 6px 14px 0 #7c4c00, 8px 14px 0 #7c4c00` }} />
+            </div>
+          </div>
+          {phase === "PAUSED" && <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-50 text-white text-[8px]">PAUSED<div className="mt-4 text-[6px]">{pauseSelection === "RESUME" ? "> " : " "}RESUME</div><div className="text-[6px]">{pauseSelection === "QUIT" ? "> " : " "}QUIT</div></div>}
+          {phase === "GAME_OVER" && <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 text-white text-[8px]">GAME OVER<div className="mt-4 text-[5px]">PRESS A TO RETRY</div></div>}
+          {phase === "WIN" && <div className="absolute inset-0 bg-blue-900/80 flex flex-col items-center justify-center z-50 text-white text-[8px]">COURSE CLEAR!<div className="mt-4 text-[5px]">PRESS A TO CONTINUE</div></div>}
+          {aiEnabled && <div className="absolute bottom-1 left-2 text-[4px] text-green-400 animate-pulse bg-black/40 px-1">AUTO</div>}
         </div>
       </div>
-      {phase === "PAUSED" && <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-50 text-white text-[8px]">PAUSED<div className="mt-4 text-[6px]">{pauseSelection === "RESUME" ? "> " : " "}RESUME</div><div className="text-[6px]">{pauseSelection === "QUIT" ? "> " : " "}QUIT</div></div>}
-      {phase === "GAME_OVER" && <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 text-white text-[8px]">GAME OVER<div className="mt-4 text-[5px]">PRESS A TO RETRY</div></div>}
-      {phase === "WIN" && <div className="absolute inset-0 bg-blue-900/80 flex flex-col items-center justify-center z-50 text-white text-[8px]">COURSE CLEAR!<div className="mt-4 text-[5px]">PRESS A TO CONTINUE</div></div>}
-      {aiEnabled && <div className="absolute bottom-1 left-2 text-[4px] text-green-400 animate-pulse bg-black/40 px-1">AUTO</div>}
-    </div>
+    </OSLayout>
   );
 }
