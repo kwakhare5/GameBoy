@@ -1,4 +1,4 @@
-import { Howl, Howler } from 'howler';
+import { Howler } from 'howler';
 import { create } from 'zustand';
 
 // Sound definitions with GameBoy-style frequencies

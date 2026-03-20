@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 // Game loop hook with requestAnimationFrame
 export function useGameLoop(
@@ -111,7 +111,7 @@ export function useHighScore(game: string) {
       return true; // New high score
     }
     return false;
-  }, [score, highScore, setHighScore]);
+  }, [highScore, setHighScore]);
 
   return { highScore, updateHighScore };
 }

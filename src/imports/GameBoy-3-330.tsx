@@ -21,7 +21,7 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 104 104">
           <g filter="url(#filter0_d_2_76)" id="D-Pad">
             <path d={svgPaths.p7bde280} fill="url(#paint0_linear_2_76)" id="Indent" />
-            <g filter="url(#filter1_ii_2_76)" id="Cross">
+            <g filter="url(#filter1_ii_2_76)" id="Cross" className="pointer-events-none">
               <path
                 d={svgPaths.p20e9c00}
                 fill="var(--fill-0, #5D5F60)"
@@ -35,7 +35,7 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
             <g
               filter="url(#filter2_i_2_76)"
               id="Icon"
-              className="cursor-pointer"
+              className="pointer-events-none"
               onClick={(e) => {
                 e.stopPropagation();
                 onAction("LEFT");
@@ -46,7 +46,7 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
             <g
               filter="url(#filter3_i_2_76)"
               id="Icon_2"
-              className="cursor-pointer"
+              className="pointer-events-none"
               onClick={(e) => {
                 e.stopPropagation();
                 onAction("UP");
@@ -57,7 +57,7 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
             <g
               filter="url(#filter4_i_2_76)"
               id="Icon_3"
-              className="cursor-pointer"
+              className="pointer-events-none"
               onClick={(e) => {
                 e.stopPropagation();
                 onAction("RIGHT");
@@ -68,7 +68,7 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
             <g
               filter="url(#filter5_i_2_76)"
               id="Icon_4"
-              className="cursor-pointer"
+              className="pointer-events-none"
               onClick={(e) => {
                 e.stopPropagation();
                 onAction("DOWN");
@@ -506,7 +506,7 @@ function Frame({
   onAction: (type: string) => void;
 }) {
   return (
-    <div className="absolute bg-[#1b1b1b] flex flex-col items-center justify-center overflow-hidden rounded-[4px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] top-[6px] bottom-[6px] left-[6px] right-[6px]">
+    <div className="absolute bg-[#1b1b1b] flex flex-col items-center justify-center overflow-hidden rounded-[4px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] inset-[6px]" style={{ width: '182px', height: '158px' }}>
       {state === "OFF" && <div className="absolute inset-0 bg-black" />}
 
       {state === "BOOTING" && (
@@ -558,7 +558,7 @@ function Frame({
       )}
 
       {state === "PLAYING_MARIO" && (
-        <NESEmulator onAction={onAction} />
+        <NESEmulator />
       )}
       
       {state === "VIEWING_SETTINGS" && (
@@ -596,6 +596,17 @@ function Frame({
               </div>
             </div>
           </div>
+          {/* Bottom hints for Power Confirm */}
+          <div className="absolute bottom-0 left-0 right-0 h-[12px] flex items-center justify-center gap-6 bg-[var(--bg)] border-t border-[var(--border)]" style={{ zIndex: 200 }}>
+            <div className="flex items-center gap-2">
+              <span className="text-[3.5px] font-bold text-[var(--text)] bg-white/10 border border-white/15 rounded-[1px] px-[2px] py-[1px]">A</span>
+              <span className="text-[3.5px] font-semibold text-[var(--dim)] tracking-wide">CONFIRM</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[3.5px] font-bold text-[var(--text)] bg-white/10 border border-white/15 rounded-[1px] px-[2px] py-[1px]">B</span>
+              <span className="text-[3.5px] font-semibold text-[var(--dim)] tracking-wide">BACK</span>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -617,7 +628,8 @@ function ScreenContainer({
 }) {
   return (
     <div
-      className="absolute aspect-[246/196] bg-[#080808] left-[8px] overflow-clip right-[8px] rounded-[6px] shadow-[0px_1px_1px_0px_rgba(255,255,255,0.5)] top-[12px]"
+      className="absolute bg-[#080808] left-[8px] overflow-clip right-[8px] rounded-[6px] shadow-[0px_1px_1px_0px_rgba(255,255,255,0.5)] top-[10px]"
+      style={{ height: "170px", width: "194px" }}
       data-name="Screen container"
     >
       <Frame state={state} bootStep={bootStep} selectedPowerOption={selectedPowerOption} osActiveIndex={osActiveIndex} onAction={onAction} />
@@ -701,7 +713,7 @@ function Group() {
 
 export default function GameBoy({ state, bootStep, onAction, selectedPowerOption, osActiveIndex }: GameBoyProps) {
   return (
-    <div className="bg-[#c8c5c2] overflow-clip relative rounded-bl-[14px] rounded-br-[14px] rounded-tl-[10px] rounded-tr-[10px] size-full select-none" data-name="GameBoy">
+    <div className="bg-[#c8c5c2] overflow-clip relative rounded-bl-[14px] rounded-br-[14px] rounded-tl-[14px] rounded-tr-[14px] size-full select-none" data-name="GameBoy">
       <DPad onAction={onAction} />
       <Button onAction={onAction} />
       <Button9 onAction={onAction} />

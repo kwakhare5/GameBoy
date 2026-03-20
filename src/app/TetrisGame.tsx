@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import OSLayout from "./components/OSLayout";
 
 // ═══ LAYOUT CONSTANTS ═══
-// Responsive: screen is 210px × 172px (fits within 246px × 196px container with padding)
-const W = 210;
-const GAME_H = 160;
+// Main display: 192px × 151px (content area inside bezels)
+const W = 182;
+const GAME_H = 134;
 // board
-const COLS = 10, ROWS = 20, CS = 8; // 10×8=80px wide, 20×8=160px tall — perfect fit
-const BX = 2, BY = 0; // board inside game-area canvas
+const COLS = 10, ROWS = 19, CS = 7; // 10×7=70px wide, 19×7=133px tall — tightly fits 134px content area
+const BX = 30, BY = 1; // anchors flush (134 - 133 = 1)
 
 // ═══ TETROMINOES ═══
 const TETS = [
@@ -55,23 +56,83 @@ function doClears(board: any) {
 const calcScore = (n: number, lv: number) => (SCORE_TBL[n] || 0) * (lv + 1);
 const calcInterval = (lv: number) => Math.max(80, 800 - lv * 70);
 
-// ═══ CANVAS DRAW HELPERS ═══
+// Basic AI logic
+function calcBestMove(board: any, piece: any) {
+  let bestScore = -Infinity;
+  let bestX = piece.x;
+  let bestRot = 0;
+
+  for (let rot = 0; rot < 4; rot++) {
+    const p = { ...piece, rot };
+    for (let x = -2; x < COLS + 2; x++) {
+      const px = { ...p, x };
+      if (!valid(board, px)) continue;
+      
+      const gy = ghostRow(board, px);
+      const dropped = { ...px, y: gy };
+      
+      const simulated = doLock(board, dropped);
+      const { rows } = doClears(simulated);
+      
+      let holes = 0;
+      let heights = 0;
+      for (let c = 0; c < COLS; c++) {
+        let blockSeen = false;
+        for (let r = 0; r < ROWS; r++) {
+          if (simulated[r][c]) {
+            blockSeen = true;
+            heights += (ROWS - r); // punish high stacks
+          } else if (blockSeen) {
+            holes++;
+          }
+        }
+      }
+      
+      const score = gy * 10 + rows.length * 1000 - holes * 300 - heights * 2;
+      if (score > bestScore) {
+        bestScore = score;
+        bestX = x;
+        bestRot = rot;
+      }
+    }
+  }
+  return { x: bestX, rot: bestRot };
+}
+
+// ═══ CANVAS DRAW HELPERS: CRISP RETRO BEVELS ═══
 function cell(ctx: CanvasRenderingContext2D, x: number, y: number, t: any, alpha = 1) {
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = t.c; ctx.fillRect(x, y, CS, CS);
-  ctx.fillStyle = t.h; ctx.fillRect(x, y, CS, 2); ctx.fillRect(x, y, 2, CS);
-  ctx.fillStyle = t.s; ctx.fillRect(x, y + CS - 2, CS, 2); ctx.fillRect(x + CS - 2, y, 2, CS);
+  
+  // Base color
+  ctx.fillStyle = t.c;
+  ctx.fillRect(x, y, CS, CS);
+  
+  // Crisp Top-Left Highlight
+  ctx.fillStyle = t.h;
+  ctx.fillRect(x, y, CS, 1);
+  ctx.fillRect(x, y, 1, CS);
+  
+  // Crisp Bottom-Right Shadow
+  ctx.fillStyle = t.s;
+  ctx.fillRect(x, y + CS - 1, CS, 1);
+  ctx.fillRect(x + CS - 1, y, 1, CS);
+  
   ctx.globalAlpha = 1;
 }
 
 function drawBg(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = "#060c1a"; ctx.fillRect(0, 0, W, GAME_H);
+  // Grid lines strictly within board bounds only
+  const boardW = COLS * CS, boardH = ROWS * CS;
   ctx.strokeStyle = "rgba(0,80,255,0.06)"; ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 12) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_H); ctx.stroke(); }
-  for (let y = 0; y < GAME_H; y += 12) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  const g = ctx.createRadialGradient(117, GAME_H + 20, 0, 117, GAME_H + 20, 160);
-  g.addColorStop(0, "rgba(255,100,0,0.1)"); g.addColorStop(1, "transparent");
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, GAME_H);
+  for (let c = 0; c <= COLS; c++) {
+    const x = BX + c * CS + 0.5;
+    ctx.beginPath(); ctx.moveTo(x, BY); ctx.lineTo(x, BY + boardH); ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    const y = BY + r * CS + 0.5;
+    ctx.beginPath(); ctx.moveTo(BX, y); ctx.lineTo(BX + boardW, y); ctx.stroke();
+  }
 }
 
 function drawBoard(ctx: CanvasRenderingContext2D, board: any, flashRows: number[], flashT: number) {
@@ -135,8 +196,13 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
   const raf = useRef<number>(0);
 
   const [ui, setUI] = useState({
-    score: 0, lines: 0, level: 0, nextType: null as number | null, phase: "start" as string
+    score: 0, lines: 0, level: 0, nextType: null as number | null, phase: "start" as string, ai: false
   });
+
+  // Auto-start game when component mounts
+  useEffect(() => {
+    init();
+  }, []);
 
   const init = useCallback(() => {
     const p = mkPiece(), n = mkPiece();
@@ -144,10 +210,13 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
       board: mkBoard(), piece: p, next: n,
       score: 0, lines: 0, level: 0,
       dropTimer: 0, dropInterval: 800,
+      inputQueue: [] as string[],
       flashRows: [], flashT: 0, flashing: false,
       phase: "playing",
+      ai: false, aiCalculated: false,
+      aiMoveTimer: 0, aiMoveInterval: 50,
     };
-    setUI({ score: 0, lines: 0, level: 0, nextType: n.type, phase: "playing" });
+    setUI(u => ({ ...u, score: 0, lines: 0, level: 0, nextType: n.type, phase: "playing", ai: false }));
   }, []);
 
   const afterLock = useCallback((g: any) => {
@@ -162,12 +231,12 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
         s.score += calcScore(rows.length, s.level);
         s.dropInterval = calcInterval(newLevel);
         s.flashRows = []; s.flashing = false;
-        s.piece = s.next; s.next = mkPiece();
+        s.piece = s.next; s.next = mkPiece(); s.aiCalculated = false;
         if (!valid(s.board, s.piece)) s.phase = "gameover";
         setUI(u => ({ ...u, score: s.score, lines: s.lines, level: s.level, nextType: s.next.type, phase: s.phase }));
       }, 200);
     } else {
-      g.board = cleared; g.piece = g.next; g.next = mkPiece();
+      g.board = cleared; g.piece = g.next; g.next = mkPiece(); g.aiCalculated = false;
       if (!valid(g.board, g.piece)) g.phase = "gameover";
       setUI(u => ({ ...u, score: g.score, lines: g.lines, level: g.level, nextType: g.next.type, phase: g.phase }));
     }
@@ -187,18 +256,105 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
         raf.current = requestAnimationFrame(loop);
         return;
       }
+      // strict delta-time frame logic (cap at 50ms)
       const dt = Math.min(ts - lastT.current, 50); lastT.current = ts;
       const g = gs.current;
 
-      if (g && g.phase === "playing" && !g.flashing) {
+      if (g && g.flashing) {
+        g.flashT += dt / 1000;
+        if (g.flashT > 0.4) {
+          const { board, rows } = doClears(g.board);
+          g.board = board;
+          g.lines += rows.length;
+          g.score += calcScore(rows.length, g.level);
+          g.level = Math.floor(g.lines / 10);
+          g.dropInterval = calcInterval(g.level);
+          g.piece = g.next;
+          g.next = mkPiece();
+          g.flashing = false;
+          g.flashRows = [];
+          if (!valid(g.board, g.piece)) {
+            g.phase = "gameover";
+            setUI(u => ({ ...u, phase: "gameover" }));
+          }
+          setUI(u => ({ ...u, score: g.score, lines: g.lines, level: g.level, nextType: g.next.type }));
+        }
+      } else if (g && g.phase === "playing") {
+        
+        // AI Logic Integration: compute best move once per piece
+        if (g.ai && !g.aiCalculated) {
+          const m = calcBestMove(g.board, g.piece);
+          g.aiQueue = [] as string[];
+          // Queue rotations first
+          for (let i = 0; i < m.rot; i++) g.aiQueue.push("ROTATE_CW");
+          // Queue horizontal moves
+          const pxDiff = m.x - g.piece.x;
+          for (let i = 0; i < Math.abs(pxDiff); i++) {
+            g.aiQueue.push(pxDiff > 0 ? "RIGHT" : "LEFT");
+          }
+          // Queue soft-drop (one cell at a time) so the piece slides down visibly
+          g.aiQueue.push("AI_DROP");
+          g.aiCalculated = true;
+          g.aiMoveTimer = 0;
+        }
+
+        // AI processes one move per tick interval (animated, not instant)
+        if (g.ai && g.aiQueue && g.aiQueue.length > 0) {
+          g.aiMoveTimer += dt;
+          while (g.aiMoveTimer >= g.aiMoveInterval && g.aiQueue.length > 0) {
+            g.aiMoveTimer -= g.aiMoveInterval;
+            const action = g.aiQueue.shift();
+            const p = g.piece;
+            if (action === "LEFT" && valid(g.board, p, -1, 0)) g.piece = { ...p, x: p.x - 1 };
+            else if (action === "RIGHT" && valid(g.board, p, 1, 0)) g.piece = { ...p, x: p.x + 1 };
+            else if (action === "ROTATE_CW") {
+              const nr = (p.rot + 1) % 4;
+              for (const [dx, dy] of KICKS) if (valid(g.board, p, dx, dy, nr)) { g.piece = { ...p, x: p.x + dx, y: p.y + dy, rot: nr }; break; }
+            }
+            else if (action === "AI_DROP") {
+              // Hard drop after positioning is complete
+              const gy = ghostRow(g.board, g.piece);
+              g.score += (gy - g.piece.y) * 2;
+              g.piece = { ...g.piece, y: gy };
+              afterLock(g);
+              break;
+            }
+          }
+        }
+
+        // Execute manual input queue (player inputs)
+        while (g.inputQueue.length > 0) {
+          const action = g.inputQueue.shift();
+          const p = g.piece;
+          if (action === "LEFT" && valid(g.board, p, -1, 0)) g.piece = { ...p, x: p.x - 1 };
+          else if (action === "RIGHT" && valid(g.board, p, 1, 0)) g.piece = { ...p, x: p.x + 1 };
+          else if (action === "DOWN") {
+            if (valid(g.board, p, 0, 1)) { g.piece = { ...p, y: p.y + 1 }; g.score++; setUI(u => ({ ...u, score: g.score })); }
+          }
+          else if (action === "ROTATE_CW") {
+            const nr = (p.rot + 1) % 4;
+            for (const [dx, dy] of KICKS) if (valid(g.board, p, dx, dy, nr)) { g.piece = { ...p, x: p.x + dx, y: p.y + dy, rot: nr }; break; }
+          }
+          else if (action === "ROTATE_CCW") {
+            const nr = (p.rot - 1 + 4) % 4;
+            for (const [dx, dy] of KICKS) if (valid(g.board, p, dx, dy, nr)) { g.piece = { ...p, x: p.x + dx, y: p.y + dy, rot: nr }; break; }
+          }
+          else if (action === "HARD_DROP") {
+            const gy = ghostRow(g.board, p);
+            g.score += (gy - p.y) * 2;
+            g.piece = { ...p, y: gy };
+            afterLock(g);
+            break;
+          }
+        }
+
         g.dropTimer += dt;
         if (g.dropTimer >= g.dropInterval) {
-          g.dropTimer = 0;
+          g.dropTimer -= g.dropInterval;
           if (valid(g.board, g.piece, 0, 1)) g.piece = { ...g.piece, y: g.piece.y + 1 };
           else afterLock(g);
         }
       }
-      if (g && g.flashing) g.flashT = Math.min(1, g.flashT + dt / 200);
 
       drawBg(ctx);
       if (g) {
@@ -272,23 +428,11 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
       }
 
       if (!g || g.phase !== "playing" || g.flashing) return;
-      const p = g.piece;
 
-      // D-PAD - move piece
-      if (e.code === "ArrowLeft") {
-        if (valid(g.board, p, -1, 0)) g.piece = { ...p, x: p.x - 1 };
-      }
-      if (e.code === "ArrowRight") {
-        if (valid(g.board, p, 1, 0)) g.piece = { ...p, x: p.x + 1 };
-      }
-      if (e.code === "ArrowDown") {
-        e.preventDefault();
-        if (valid(g.board, p, 0, 1)) { g.piece = { ...p, y: p.y + 1 }; g.score++; }
-      }
-      if (e.code === "ArrowUp") {
-        const nr = (p.rot + 1) % 4;
-        for (const [dx, dy] of KICKS) if (valid(g.board, p, dx, dy, nr)) { g.piece = { ...p, x: p.x + dx, y: p.y + dy, rot: nr }; break; }
-      }
+      if (e.code === "ArrowLeft") g.inputQueue.push("LEFT");
+      if (e.code === "ArrowRight") g.inputQueue.push("RIGHT");
+      if (e.code === "ArrowDown") { e.preventDefault(); g.inputQueue.push("DOWN"); }
+      if (e.code === "ArrowUp") g.inputQueue.push("ROTATE_CW");
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -299,30 +443,37 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
       const g = gs.current;
       if (!g) return;
       const phase = g.phase;
-      if (type === "START") {
-        onAction("QUIT_GAME");
-        return;
+      
+      if (phase === "start") {
+        if (type === "START") init(); 
+        return; 
       }
-      if (phase === "start") { init(); return; }
-      if (phase === "gameover") { if (type === "A" || type === "START") init(); return; }
-      if (type === "B") {
+      
+      if (phase === "gameover") { 
+        if (type === "START") init(); 
+        return; 
+      }
+      
+      if (type === "START") {
         g.phase = g.phase === "paused" ? "playing" : "paused";
         setUI(u => ({ ...u, phase: g.phase }));
         return;
       }
+      
       if (!g || g.phase !== "playing" || g.flashing) return;
-      const p = g.piece;
-      if (type === "LEFT") { if (valid(g.board, p, -1, 0)) g.piece = { ...p, x: p.x - 1 }; }
-      if (type === "RIGHT") { if (valid(g.board, p, 1, 0)) g.piece = { ...p, x: p.x + 1 }; }
-      if (type === "DOWN") { if (valid(g.board, p, 0, 1)) { g.piece = { ...p, y: p.y + 1 }; g.score++; } }
-      if (type === "A" || type === "UP") {
-        const rots = TETS[p.type].r, nr = (p.rot + 1) % rots.length;
-        for (const [dx, dy] of KICKS) if (valid(g.board, p, dx, dy, nr)) { g.piece = { ...p, x: p.x + dx, y: p.y + dy, rot: nr }; break; }
+      
+      // Y toggles AI mode
+      if (type === "Y") {
+        g.ai = !g.ai;
+        g.aiCalculated = false; // force recalc
+        setUI(u => ({ ...u, ai: g.ai }));
+        return;
       }
-      if (type === "X" || type === "START") { // Hard drop or similar
-        let np = { ...p }; while (valid(g.board, np, 0, 1)) { np = { ...np, y: np.y + 1 }; g.score += 2; }
-        g.piece = np; afterLock(g);
-      }
+      
+      if (type === "LEFT") g.inputQueue.push("LEFT");
+      if (type === "RIGHT") g.inputQueue.push("RIGHT");
+      if (type === "DOWN") g.inputQueue.push("DOWN");
+      if (type === "A" || type === "UP") g.inputQueue.push("ROTATE_CW");
     };
     return () => { delete (window as any).__tetrisInput; };
   }, [init, afterLock, onAction]);
@@ -330,73 +481,63 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
   const spd = Math.min(9, ui.level);
 
   return (
-    <div className="screen" style={{
+    <OSLayout
+      customHints={
+        <>
+          <div className="vintage-hint" style={{ marginRight: "2px" }}>
+            <span className="vintage-hk">A</span>
+            <span className="vintage-ha">ROTATE</span>
+          </div>
+          <div className="vintage-hint" style={{ marginRight: "2px" }}>
+            <span className="vintage-hk">Y</span>
+            <span className="vintage-ha">AI</span>
+          </div>
+          <div className="vintage-hint" style={{ marginRight: "2px" }}>
+            <span className="vintage-hk">START</span>
+            <span className="vintage-ha">PAUSE</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">SEL</span>
+            <span className="vintage-ha">EXIT</span>
+          </div>
+        </>
+      }
+    >
+      <div style={{
       position: "relative",
-      width: "210px",
-      height: "184px",
+      width: "100%",
+      height: "100%",
       overflow: "hidden",
       background: "#060c1a",
       fontFamily: "'Press Start 2P', monospace",
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
     }}>
-      {/* ── ROW 1: HUD 12px ── */}
-      <div className="hud" style={{
-        width: "210px",
-        height: "12px",
-        flex: "0 0 12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 4px",
-        background: "rgba(4,8,20,0.98)",
-        borderBottom: "1px solid #1a3060",
-        position: "relative",
-        zIndex: 10,
-        overflow: "hidden",
-      }}>
-        <span className="hud-title" style={{ fontSize: "5px", color: "#ff8c00", letterSpacing: "1px", lineHeight: "1" }}>TETRIS</span>
-        <span className="hud-score" style={{ fontSize: "5px", color: "#c8e0ff", letterSpacing: "0.5px", lineHeight: "1" }}>SC {String(ui.score).padStart(7, "0")}</span>
-        <span className="hud-lv" style={{ fontSize: "5px", color: "#ffd700", letterSpacing: "0.5px", lineHeight: "1" }}>LV {String(ui.level).padStart(2, "0")}</span>
-      </div>
+      <canvas ref={canvasRef} className="game-canvas" width={182} height={134} style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "182px",
+        height: "100%",
+        display: "block",
+        imageRendering: "pixelated",
+        zIndex: 1,
+      }} />
 
-      {/* ── ROW 2: GAME AREA 160px ── */}
-      <div className="game-area" style={{
-        width: "210px",
-        height: "160px",
-        flex: "0 0 160px",
-        display: "flex",
-        flexDirection: "row",
+      <div style={{
+        width: "130px",
+        height: "100%",
+        flex: "0 0 130px",
         position: "relative",
-        overflow: "hidden",
+        zIndex: 2,
       }}>
-        {/* full-area bg canvas */}
-        <canvas ref={canvasRef} className="game-canvas" width={210} height={160} style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "210px",
-          height: "160px",
-          display: "block",
-          imageRendering: "pixelated",
-          zIndex: 1,
-        }} />
-
-        {/* board column (transparent, just for overlay positioning) */}
-        <div className="board-col" style={{
-          width: "82px",
-          height: "160px",
-          flex: "0 0 82px",
-          position: "relative",
-          zIndex: 2,
-        }}>
           {ui.phase === "start" && (
             <div className="overlay" style={{
               position: "absolute",
               top: 0,
               left: 0,
-              width: "82px",
-              height: "160px",
+              width: "130px",
+              height: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -417,7 +558,7 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
                 <div className="ov-sep" style={{ height: "1px", background: "#1a3060", width: "100%" }} />
                 <div className="ov-lbl" style={{ fontSize: "4px", color: "#3a5888" }}>ALL 7 PIECES · SRS</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#1a3060", width: "100%" }} />
-                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ ANY KEY</div>
+                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS START</div>
               </div>
             </div>
           )}
@@ -426,8 +567,8 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
               position: "absolute",
               top: 0,
               left: 0,
-              width: "82px",
-              height: "160px",
+              width: "130px",
+              height: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -446,7 +587,7 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
               }}>
                 <div className="ov-title" style={{ fontSize: "7px", lineHeight: "1", letterSpacing: "1px", color: "#ff8c00" }}>PAUSE</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#1a3060", width: "100%" }} />
-                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS P</div>
+                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS START</div>
               </div>
             </div>
           )}
@@ -455,8 +596,8 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
               position: "absolute",
               top: 0,
               left: 0,
-              width: "82px",
-              height: "160px",
+              width: "130px",
+              height: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -464,14 +605,14 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
               pointerEvents: "none",
             }}>
               <div className="ov-box" style={{
-                width: "74px",
+                width: "90px",
                 border: "1px solid #ff3333",
-                padding: "6px 6px",
+                padding: "6px 4px",
                 background: "rgba(4,8,20,0.96)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: "3px",
+                gap: "2px",
               }}>
                 <div className="ov-title" style={{ fontSize: "7px", lineHeight: "1", letterSpacing: "1px", color: "#ff3333" }}>GAME</div>
                 <div className="ov-title" style={{ fontSize: "7px", lineHeight: "1", letterSpacing: "1px", color: "#ff3333", marginTop: "2px" }}>OVER</div>
@@ -480,7 +621,7 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
                 <div className="ov-score" style={{ fontSize: "6px", color: "#ffd700" }}>{String(ui.score).padStart(7, "0")}</div>
                 <div className="ov-lbl" style={{ fontSize: "4px", color: "#3a5888", marginTop: "2px" }}>LV{ui.level} · {ui.lines}L</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#1a3060", width: "100%" }} />
-                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ ENTER</div>
+                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS START</div>
               </div>
             </div>
           )}
@@ -488,118 +629,80 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
 
         {/* panel column */}
         <div className="panel-col" style={{
-          flex: 1,
-          height: "160px",
+          width: "52px",
+          flex: "0 0 52px",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          padding: "5px 5px 4px 6px",
+          padding: "3px 3px",
           gap: 0,
           borderLeft: "1px solid #1a3060",
           background: "rgba(4,8,20,0.75)",
           position: "relative",
           zIndex: 2,
           overflow: "hidden",
+          justifyContent: "space-between",
         }}>
-          <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>NEXT</div>
-          <div className="next-wrap" style={{ alignSelf: "flex-start", marginBottom: "4px" }}>
-            <div className="next-box" style={{
-              width: "36px",
-              height: "36px",
-              border: "1px solid #1a3060",
-              background: "rgba(0,0,0,0.45)",
-              position: "relative",
-              overflow: "hidden",
-            }}>
-              <canvas ref={nextRef} className="next-canvas" width={36} height={36} style={{
-                display: "block",
-                imageRendering: "pixelated",
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }} />
+          {/* Top section: NEXT piece preview */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1 }}>NEXT</div>
+            <div className="next-wrap" style={{ alignSelf: "flex-start", marginTop: "2px" }}>
+              <div className="next-box" style={{
+                width: "36px",
+                height: "36px",
+                border: "1px solid #1a3060",
+                background: "rgba(0,0,0,0.45)",
+                position: "relative",
+                overflow: "hidden",
+              }}>
+                <canvas ref={nextRef} className="next-canvas" width={36} height={36} style={{
+                  display: "block",
+                  imageRendering: "pixelated",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                }} />
+              </div>
             </div>
           </div>
 
-          <div className="p-sep" style={{ height: "1px", background: "#1a3060", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>SCORE</div>
-          <div className="p-val p-score" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#c8e0ff" }}>{String(ui.score).padStart(7, "0")}</div>
+          {/* Middle section: SCORE / LEVEL / LINES */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <div className="p-sep" style={{ height: "1px", background: "#1a3060", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>SCORE</div>
+            <div className="p-val p-score" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "3px", color: "#c8e0ff" }}>{String(ui.score).padStart(7, "0")}</div>
 
-          <div className="p-sep" style={{ height: "1px", background: "#1a3060", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>LEVEL</div>
-          <div className="p-val p-level" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#ffd700" }}>{String(ui.level).padStart(2, "0")}</div>
+            <div className="p-sep" style={{ height: "1px", background: "#1a3060", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>LEVEL</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+              <span className="p-val p-level" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", color: "#ffd700" }}>{String(ui.level).padStart(2, "0")}</span>
+              {ui.ai && <span style={{ fontSize: "5px", color: "#ef4444", fontWeight: 900, background: "rgba(239,68,68,0.2)", padding: "1px 2px", borderRadius: "1px" }}>AI</span>}
+            </div>
 
-          <div className="p-sep" style={{ height: "1px", background: "#1a3060", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>LINES</div>
-          <div className="p-val p-lines" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#22cc44" }}>{String(ui.lines).padStart(3, "0")}</div>
+            <div className="p-sep" style={{ height: "1px", background: "#1a3060", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>LINES</div>
+            <div className="p-val p-lines" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "3px", color: "#22cc44" }}>{String(ui.lines).padStart(3, "0")}</div>
+          </div>
 
-          <div className="p-sep" style={{ height: "1px", background: "#1a3060", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>SPEED</div>
-          <div className="speed-bar" style={{ display: "flex", gap: "1px", marginTop: "1px" }}>
-            {Array.from({ length: 10 }, (_, i) => (
-              <div key={i} className="spd-seg" style={{
-                height: "4px",
-                flex: 1,
-                borderRadius: "1px",
-                transition: "background 0.2s",
-                background: i <= spd ? "#ff8c00" : "rgba(255,140,0,0.12)",
-                boxShadow: i <= spd ? "0 0 3px #ff8c00" : "none",
-              }} />
-            ))}
+          {/* Bottom section: SPEED */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <div className="p-sep" style={{ height: "1px", background: "#1a3060", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#3a5888", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>SPEED</div>
+            <div className="speed-bar" style={{ display: "flex", gap: "1px", marginTop: "2px" }}>
+              {Array.from({ length: 10 }, (_, i) => (
+                <div key={i} className="spd-seg" style={{
+                  height: "5px",
+                  flex: 1,
+                  borderRadius: "1px",
+                  transition: "background 0.2s",
+                  background: i <= spd ? "#ff8c00" : "rgba(255,140,0,0.12)",
+                  boxShadow: i <= spd ? "0 0 3px #ff8c00" : "none",
+                }} />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* ── ROW 3: HINTS 12px ── */}
-      <div className="hints" style={{
-        width: "210px",
-        height: "12px",
-        flex: "0 0 12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "4px",
-        background: "rgba(4,8,20,0.98)",
-        borderTop: "1px solid #1a3060",
-        position: "relative",
-        zIndex: 10,
-        overflow: "hidden",
-      }}>
-        {[["D-PAD", "MOVE"], ["A", "ROTATE"], ["B", "PAUSE"], ["X", "FLIP"], ["Y", "HINT"], ["START", "QUIT"]].map(([k, a]) => (
-          <div className="hint" key={k} style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <span className="hk" style={{
-              fontSize: "3.5px",
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              borderRadius: "1px",
-              padding: "1px 2px",
-              color: "#fff",
-              lineHeight: 1,
-            }}>{k}</span>
-            <span className="ha" style={{ fontSize: "3.5px", color: "#3a5888", lineHeight: 1 }}>{a}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="scanlines" style={{
-        position: "absolute",
-        top: "12px",
-        left: 0,
-        right: 0,
-        bottom: "12px",
-        zIndex: 50,
-        pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.09) 2px,rgba(0,0,0,0.09) 3px)",
-      }} />
-      <div className="vignette" style={{
-        position: "absolute",
-        top: "12px",
-        left: 0,
-        right: 0,
-        bottom: "12px",
-        zIndex: 49,
-        pointerEvents: "none",
-        background: "radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.55) 100%)",
-      }} />
     </div>
+    </OSLayout>
   );
 }

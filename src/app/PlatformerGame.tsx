@@ -8,11 +8,9 @@ const JUMP_FORCE = -5.6;
 const MOVE_SPEED = 1.9;
 const FRICTION = 0.82;
 const MAX_FALL = 6;
-const SCREEN_W = 224; // 14 tiles wide
-const SCREEN_H = 160;
-const TILES_Y = Math.ceil(SCREEN_H / TILE);
-
-const HIGH_SCORE_KEY = "gameboy_mario_highscore";
+const SCREEN_W = 182; 
+const SCREEN_H = 134; // Content area height
+const TILES_Y = Math.floor(SCREEN_H / TILE); // 8 tiles high
 
 // Tile types: 0=air, 1=ground, 2=brick, 3=coin, 4=qblock, 5=pipe_tl, 6=pipe_tr, 7=pipe_bl, 8=pipe_br, 9=flag, 10=cloud, 11=bush
 function createLevel(): number[][] {
@@ -96,7 +94,6 @@ export default function PlatformerGame({ onAction }: { onAction: (type: string) 
   const [onGround, setOnGround] = useState(false);
   const [cameraX, setCameraX] = useState(0);
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem(HIGH_SCORE_KEY) || "0"));
   const [coins, setCoins] = useState(0);
   const [lives, setLives] = useState(3);
   const [phase, setPhase] = useState<"START" | "PLAYING" | "GAME_OVER" | "PAUSED" | "WIN">("START");
@@ -139,56 +136,16 @@ export default function PlatformerGame({ onAction }: { onAction: (type: string) 
 
   useEffect(() => {
     (window as any).__platformerInput = handleInput;
-    // ═══ GAMEBOY CONTROLLER MAPPINGS ═══
-    // D-PAD: Arrow keys
-    // A: Z (Jump)
-    // B: X (Run)
-    // START: Enter
-    // SELECT: Shift (Toggle AI)
-    const release = (e: KeyboardEvent) => {
-      if (e.code === "ArrowLeft") keys.current.l = false;
-      if (e.code === "ArrowRight") keys.current.r = false;
-      if (e.code === "KeyZ" || e.code === "ArrowUp") keys.current.jh = false;
-    };
-    
-    const press = (e: KeyboardEvent) => {
-      // SELECT - toggle AI
-      if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
-        handleInput("SELECT");
-        return;
-      }
-      // START - start game
-      if (e.code === "Enter") {
-        if (phase === "START" || phase === "GAME_OVER" || phase === "WIN") {
-          handleInput("A");
-        }
-        return;
-      }
-      // D-PAD
-      if (e.code === "ArrowLeft") keys.current.l = true;
-      if (e.code === "ArrowRight") keys.current.r = true;
-      // A button (Z) - Jump
-      if (e.code === "KeyZ" || e.code === "ArrowUp") {
-        keys.current.j = true;
-        keys.current.jh = true;
-      }
-      // B button (X) - Run (treated as right for simplicity)
-      if (e.code === "KeyX") keys.current.r = true;
-    };
-    
-    window.addEventListener("keydown", press);
-    window.addEventListener("keyup", release);
-    return () => { 
-      delete (window as any).__platformerInput; 
-      window.removeEventListener("keydown", press);
-      window.removeEventListener("keyup", release); 
+    // Keyboard controls disabled - only GameBoy buttons work
+    return () => {
+      delete (window as any).__platformerInput;
     };
   }, [handleInput, phase]);
 
   useEffect(() => {
     if (phase !== "PLAYING") return;
     const tick = () => {
-      let { px, py, vx: cvx, vy: cvy, g, cam, sc, cn, lv, ph, ai, lvl, en } = state.current;
+      let { px, py, vx: cvx, vy: cvy, g, cam, sc, cn, lv, ai, lvl, en } = state.current;
       if (ai) {
           keys.current.r = true;
           const ahead = isSolid(px + 24, py + 8) || !isSolid(px + 24, py+20) || en.some(e => e.alive && Math.abs(e.x - px) < 40);
@@ -231,29 +188,26 @@ export default function PlatformerGame({ onAction }: { onAction: (type: string) 
       customHints={
         <>
           <div className="vintage-hint">
-            <span className="vintage-hk">D-PAD</span>
-            <span className="vintage-ha">MOVE</span>
-          </div>
-          <div className="vintage-hint">
             <span className="vintage-hk">A</span>
             <span className="vintage-ha">JUMP</span>
-          </div>
-          <div className="vintage-hint">
-            <span className="vintage-hk">B</span>
-            <span className="vintage-ha">RUN</span>
-          </div>
-          <div className="vintage-hint">
-            <span className="vintage-hk">START</span>
-            <span className="vintage-ha">START</span>
           </div>
           <div className="vintage-hint">
             <span className="vintage-hk">SEL</span>
             <span className="vintage-ha">AI</span>
           </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">B</span>
+            <span className="vintage-ha">QUIT</span>
+          </div>
         </>
       }
     >
-      <div className="vintage-main-area">
+      <div className="vintage-main-area" style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      <div className="vintage-screen-bg" />
+      <div className="vintage-screen-glow" />
+      <div className="vintage-scanlines" />
+      
+      <div className="relative w-full h-full">
         <div className="absolute inset-0 bg-[#5c94fc] font-['Press_Start_2P',sans-serif] overflow-hidden">
           {phase === "START" && <div className="absolute inset-0 bg-black z-[100] flex flex-col items-center justify-center">
              <div className="text-[12px] text-white font-black italic mb-2 tracking-tighter drop-shadow-[2px_2px_#e40010]">SUPER AI MARIO</div>
@@ -282,6 +236,8 @@ export default function PlatformerGame({ onAction }: { onAction: (type: string) 
           {phase === "WIN" && <div className="absolute inset-0 bg-blue-900/80 flex flex-col items-center justify-center z-50 text-white text-[8px]">COURSE CLEAR!<div className="mt-4 text-[5px]">PRESS A TO CONTINUE</div></div>}
           {aiEnabled && <div className="absolute bottom-1 left-2 text-[4px] text-green-400 animate-pulse bg-black/40 px-1">AUTO</div>}
         </div>
+      </div>
+
       </div>
     </OSLayout>
   );

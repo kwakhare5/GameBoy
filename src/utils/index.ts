@@ -89,12 +89,12 @@ export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// GameBoy screen dimensions
+// GameBoy screen dimensions (Primary Display)
 export const SCREEN = {
-  WIDTH: 234,
-  HEIGHT: 184,
+  WIDTH: 182,
+  HEIGHT: 158,
   HUD_HEIGHT: 12,
-  GAME_HEIGHT: 160,
+  GAME_HEIGHT: 134,
   HINTS_HEIGHT: 12,
 };
 

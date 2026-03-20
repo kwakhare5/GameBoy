@@ -14,6 +14,10 @@ export default function App() {
     navigateTo,
     setSelectedMenuItem,
     setPowerOption,
+    isCartridgeBooting,
+    setCartridgeBooting,
+    activeOSModal,
+    setOSModal,
   } = useGameBoyStore();
 
   const { init: initAudio, play } = useGameBoySound();
@@ -27,11 +31,12 @@ export default function App() {
       const targetWidth = 220;
       const targetHeight = 362;
 
-      const scaleX = (width * 0.85) / targetWidth;
-      const scaleY = (height * 0.85) / targetHeight;
+      const scaleX = (width * 0.9) / targetWidth;
+      const scaleY = (height * 0.9) / targetHeight;
       const newScale = Math.min(scaleX, scaleY);
 
-      setScale(newScale);
+      // Ensure minimum scale of 1.5 for visibility
+      setScale(Math.max(newScale, 1.5));
     };
 
     handleResize();
@@ -46,7 +51,7 @@ export default function App() {
     const isRelease = type.endsWith("_RELEASE");
     const baseType = isRelease ? type.replace("_RELEASE", "") : type;
 
-    // GLOBAL ON/OFF INTERCEPT
+    // GLOBAL ON/OFF INTERCEPT - Press MENU to toggle power
     if (baseType === "MENU" && !isRelease) {
       if (currentScreen === "OFF") {
         play("POWER_ON");
@@ -60,7 +65,16 @@ export default function App() {
     }
 
     // If powered off or booting, ignore everything else
-    if (currentScreen === "OFF" || currentScreen === "BOOTING") return;
+    if (currentScreen === "OFF" || currentScreen === "BOOTING" || isCartridgeBooting) return;
+
+    // GLOBAL OS MODAL DISMISSAL - Intercept A/B/START to close modal
+    if (activeOSModal) {
+      if (!isRelease && (baseType === "A" || baseType === "B" || baseType === "START")) {
+        play("BACK");
+        setOSModal(null);
+      }
+      return;
+    }
 
     // GLOBAL QUIT INTERCEPT
     if (!isRelease && baseType === "QUIT_GAME") {
@@ -85,13 +99,30 @@ export default function App() {
         play("CONFIRM");
         const screens: Array<"PLAYING_SNAKE" | "PLAYING_TETRIS" | "PLAYING_MARIO" | "VIEWING_STATS" | "VIEWING_SETTINGS"> = 
           ["PLAYING_SNAKE", "PLAYING_TETRIS", "PLAYING_MARIO", "VIEWING_STATS", "VIEWING_SETTINGS"];
-        navigateTo(screens[selectedMenuItem]);
+        
+        const targetScreen = screens[selectedMenuItem];
+        
+        // Only run boot sequence for games, not OS menus (settings/stats)
+        if (targetScreen.startsWith("PLAYING_")) {
+          setCartridgeBooting(true);
+          setTimeout(() => {
+            navigateTo(targetScreen);
+            setCartridgeBooting(false);
+          }, 300); // Wait for CSS flash wipe to complete
+        } else {
+          navigateTo(targetScreen);
+        }
       }
       return;
     }
 
     if (currentScreen === "PLAYING_SNAKE") {
       if (isRelease) return;
+      if (baseType === "SELECT") {
+        play("BACK");
+        navigateTo("MAIN_MENU");
+        return;
+      }
       const snakeInput = (window as any).__snakeInput;
       if (snakeInput) snakeInput(baseType);
       return;
@@ -99,25 +130,40 @@ export default function App() {
 
     if (currentScreen === "PLAYING_TETRIS") {
       if (isRelease) return;
+      if (baseType === "SELECT") {
+        play("BACK");
+        navigateTo("MAIN_MENU");
+        return;
+      }
       const tetrisInput = (window as any).__tetrisInput;
       if (tetrisInput) tetrisInput(baseType);
       return;
     }
 
     if (currentScreen === "PLAYING_MARIO") {
-      if (baseType === "START" && !isRelease) {
+      if (baseType === "SELECT" && !isRelease) {
         play("BACK");
         navigateTo("MAIN_MENU");
         return;
       }
       const nesInput = (window as any).__nesInput;
-      if (nesInput && ["UP", "DOWN", "LEFT", "RIGHT", "A", "B"].includes(baseType)) {
+      if (nesInput && ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START"].includes(baseType)) {
         nesInput(baseType, !isRelease);
       }
       return;
     }
 
-    if (currentScreen === "VIEWING_STATS" || currentScreen === "VIEWING_SETTINGS") {
+    if (currentScreen === "VIEWING_STATS") {
+      if (isRelease) return;
+      if (baseType === "B" || baseType === "SELECT" || baseType === "QUIT_GAME") {
+        play("BACK");
+        navigateTo("MAIN_MENU");
+        return;
+      }
+      return;
+    }
+
+    if (currentScreen === "VIEWING_SETTINGS") {
       if (isRelease) return;
       if (baseType === "B" || baseType === "QUIT_GAME") {
         play("BACK");
@@ -125,10 +171,8 @@ export default function App() {
         return;
       }
 
-      if (currentScreen === "VIEWING_SETTINGS") {
-        const settingsInput = (window as any).__settingsInput;
-        if (settingsInput) settingsInput(baseType);
-      }
+      const settingsInput = (window as any).__settingsInput;
+      if (settingsInput) settingsInput(baseType);
       return;
     }
 
@@ -151,7 +195,7 @@ export default function App() {
       }
       return;
     }
-  }, [currentScreen, selectedMenuItem, powerOption, initAudio, play, powerOn, powerOff, navigateTo, setSelectedMenuItem, setPowerOption]);
+  }, [currentScreen, selectedMenuItem, powerOption, initAudio, play, powerOn, powerOff, navigateTo, setSelectedMenuItem, setPowerOption, isCartridgeBooting, setCartridgeBooting, activeOSModal, setOSModal]);
 
   return (
     <div
@@ -174,7 +218,7 @@ export default function App() {
       >
         <div
           style={{
-            width: "220px",
+            width: "210px",
             height: "362px",
             position: "relative",
             flexShrink: 0,

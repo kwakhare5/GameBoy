@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import OSLayout from "./components/OSLayout";
 
 // ═══ LAYOUT ═══
-// Responsive: screen is 210px × 172px (fits within 246px × 196px container with padding)
-const W = 210, GAME_H = 160;
+// Main display: 192px × 151px (content area inside bezels)
+const GAME_H = 134;
 
 // ═══ BOARD ═══
-const COLS = 20, ROWS = 20, CS = 8; // 20×8=160px board — perfect fit
+// Playable area: 130px × 130px
+const COLS = 13, ROWS = 13, CS = 10;
 const BX = 0, BY = 0;
 
 // ═══ DIRECTIONS ═══
@@ -13,8 +15,8 @@ const DIR: Record<string, { x: number; y: number }> = { UP: { x: 0, y: -1 }, DOW
 const OPPOSITE: Record<string, string> = { UP: "DOWN", DOWN: "UP", LEFT: "RIGHT", RIGHT: "LEFT" };
 
 // ═══ COLORS ═══
-const GREEN_HEAD = "#44ff66", GREEN_BODY = "#22cc44", GREEN_DARK = "#116622";
-const GREEN_HI = "#88ffaa", GREEN_SH = "#0a4418";
+const GREEN_HEAD = "#88eeff", GREEN_BODY = "#00d4ff", GREEN_DARK = "#006688";
+const GREEN_HI = "#ffffff", GREEN_SH = "#004466";
 const FOOD_C = "#ff3333", FOOD_HI = "#ff9988", FOOD_SH = "#991111";
 const FOOD2_C = "#ffd700", FOOD2_HI = "#fff099";
 const BG = "#060c1a", GRID = "rgba(0,180,50,0.05)", BORDER = "#0d3010";
@@ -38,106 +40,234 @@ function spawnFood(snake: { x: number; y: number }[], bonus = false) {
   return { ...pos, bonus };
 }
 
-// ═══ AI PATHFINDING (BFS) ═══
+// ═══ AI PATHFINDING (Survival-Aware BFS) ═══
+// Counts reachable cells from a position via flood-fill
+function floodFillCount(startX: number, startY: number, walls: Set<string>) {
+  const visited = new Set([`${startX},${startY}`]);
+  const queue = [{ x: startX, y: startY }];
+  let count = 0;
+  const dirs = Object.values(DIR);
+  while (queue.length) {
+    const pos = queue.shift()!;
+    count++;
+    for (const d of dirs) {
+      const nx = pos.x + d.x, ny = pos.y + d.y;
+      const key = `${nx},${ny}`;
+      if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+      if (walls.has(key) || visited.has(key)) continue;
+      visited.add(key);
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return count;
+}
+
 function aiBFS(snake: { x: number; y: number }[], food: { x: number; y: number }) {
   const head = snake[0];
   const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
-  const queue: { pos: { x: number; y: number }; path: { x: number; y: number }[] }[] = [{ pos: head, path: [] }];
-  const visited = new Set([`${head.x},${head.y}`]);
   const dirs = Object.values(DIR);
+
+  // BFS to find shortest path to food
+  const queue: { pos: { x: number; y: number }; firstDir: { x: number; y: number } }[] = [];
+  const visited = new Set([`${head.x},${head.y}`]);
+  
+  for (const d of dirs) {
+    const nx = head.x + d.x, ny = head.y + d.y;
+    const key = `${nx},${ny}`;
+    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+    if (occupied.has(key)) continue;
+    if (nx === food.x && ny === food.y) {
+      // Check if eating here leaves enough open space for survival
+      const newOccupied = new Set(occupied);
+      newOccupied.add(key); // new head position (snake grows, no tail removal)
+      const space = floodFillCount(nx, ny, newOccupied);
+      if (space >= snake.length) return d; // Safe to eat
+    }
+    visited.add(key);
+    queue.push({ pos: { x: nx, y: ny }, firstDir: d });
+  }
+
   while (queue.length) {
-    const { pos, path } = queue.shift()!;
+    const { pos, firstDir } = queue.shift()!;
     for (const d of dirs) {
       const nx = pos.x + d.x, ny = pos.y + d.y;
       const key = `${nx},${ny}`;
       if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
       if (occupied.has(key) || visited.has(key)) continue;
-      if (nx === food.x && ny === food.y) return path[0] || d;
+      if (nx === food.x && ny === food.y) {
+        // Found food — verify survival after eating
+        const newHead = { x: head.x + firstDir.x, y: head.y + firstDir.y };
+        const newOccupied = new Set(occupied);
+        newOccupied.add(`${newHead.x},${newHead.y}`);
+        const space = floodFillCount(newHead.x, newHead.y, newOccupied);
+        if (space >= snake.length) return firstDir;
+        break; // Path to food exists but is unsafe, fall through to survival mode
+      }
       visited.add(key);
-      queue.push({ pos: { x: nx, y: ny }, path: [...path, d] });
+      queue.push({ pos: { x: nx, y: ny }, firstDir });
     }
   }
-  const safe = dirs.filter(d => {
+
+  // Survival mode: pick the direction with the most open flood-fill space
+  let bestDir = dirs[0];
+  let bestSpace = -1;
+  for (const d of dirs) {
     const nx = head.x + d.x, ny = head.y + d.y;
-    return nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !occupied.has(`${nx},${ny}`);
-  });
-  return safe[0] || dirs[0];
+    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+    if (occupied.has(`${nx},${ny}`)) continue;
+    const walls = new Set(occupied);
+    walls.add(`${nx},${ny}`);
+    const space = floodFillCount(nx, ny, walls);
+    if (space > bestSpace) {
+      bestSpace = space;
+      bestDir = d;
+    }
+  }
+  return bestDir;
 }
 
 // ═══ DRAW HELPERS ═══
-function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, c: string, hi: string, sh: string) {
-  ctx.fillStyle = c; ctx.fillRect(x, y, CS, CS);
-  ctx.fillStyle = hi; ctx.fillRect(x, y, CS, 2); ctx.fillRect(x, y, 2, CS);
-  ctx.fillStyle = sh; ctx.fillRect(x, y + CS - 2, CS, 2); ctx.fillRect(x + CS - 2, y, 2, CS);
+// ═══ DRAW HELPERS: PREMIUM REFINED RETRO SHADERS ═══
+function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, colorBase: string, colorHi: string, colorSh: string, isRound = false) {
+  // Base Color
+  ctx.fillStyle = colorBase;
+  if (isRound) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, CS, CS, 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(x, y, CS, CS);
+  }
+
+  // Crisp Top-Left Highlight (matches Tetris 1px bevel)
+  ctx.fillStyle = colorHi;
+  if (isRound) {
+    ctx.beginPath(); ctx.roundRect(x, y, CS - 1, 1, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x, y, 1, CS - 1, 2); ctx.fill();
+  } else {
+    ctx.fillRect(x, y, CS, 1); 
+    ctx.fillRect(x, y, 1, CS);
+  }
+
+  // Crisp Bottom-Right Shadow (matches Tetris 1px bevel)
+  ctx.fillStyle = colorSh;
+  if (isRound) {
+    ctx.beginPath(); ctx.roundRect(x, y + CS - 1, CS, 1, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x + CS - 1, y, 1, CS, 2); ctx.fill();
+  } else {
+    ctx.fillRect(x, y + CS - 1, CS, 1); 
+    ctx.fillRect(x + CS - 1, y, 1, CS);
+  }
 }
 
 function drawBg(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, GAME_H);
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, COLS * CS, GAME_H);
+  // Grid lines strictly within board bounds only (COLS*CS × ROWS*CS)
+  const boardW = COLS * CS, boardH = ROWS * CS;
   ctx.strokeStyle = GRID; ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += CS) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_H); ctx.stroke(); }
-  for (let y = 0; y < GAME_H; y += CS) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  const g = ctx.createRadialGradient(80, GAME_H, 0, 80, GAME_H, 200);
-  g.addColorStop(0, "rgba(34,204,68,0.07)"); g.addColorStop(1, "transparent");
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, GAME_H);
+  for (let c = 0; c <= COLS; c++) {
+    const x = BX + c * CS + 0.5; // +0.5 for crisp 1px lines
+    ctx.beginPath(); ctx.moveTo(x, BY); ctx.lineTo(x, BY + boardH); ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    const y = BY + r * CS + 0.5;
+    ctx.beginPath(); ctx.moveTo(BX, y); ctx.lineTo(BX + boardW, y); ctx.stroke();
+  }
 }
 
 function drawBoard(ctx: CanvasRenderingContext2D) {
-  ctx.strokeStyle = BORDER; ctx.lineWidth = 1;
-  ctx.strokeRect(BX, BY, COLS * CS, ROWS * CS);
+  const bw = COLS * CS, bh = ROWS * CS;
+  ctx.fillStyle = BORDER;
+  // Top edge
+  ctx.fillRect(BX, BY, bw, 1);
+  // Bottom edge
+  ctx.fillRect(BX, BY + bh - 1, bw, 1);
+  // Left edge
+  ctx.fillRect(BX, BY, 1, bh);
+  // Right edge
+  ctx.fillRect(BX + bw - 1, BY, 1, bh);
 }
 
 function drawSnake(ctx: CanvasRenderingContext2D, snake: { x: number; y: number }[], eatAnim: number) {
   snake.forEach((seg, i) => {
     const x = BX + seg.x * CS, y = BY + seg.y * CS;
     if (i === 0) {
-      const scale = eatAnim > 0 ? 1 + eatAnim * 0.06 : 1;
+      const scale = eatAnim > 0 ? 1 + eatAnim * 0.08 : 1;
+      
+      ctx.save();
       if (scale !== 1) {
         const cx = x + CS / 2, cy = y + CS / 2;
-        ctx.save();
         ctx.translate(cx, cy); ctx.scale(scale, scale); ctx.translate(-cx, -cy);
       }
-      drawCell(ctx, x, y, GREEN_HEAD, GREEN_HI, GREEN_DARK);
+      
+      // Snake Head (Slightly rounded to distinguish from body)
+      drawCell(ctx, x, y, GREEN_HEAD, GREEN_HI, GREEN_DARK, true);
+      
+      // Eyes with directional tracking and glowing pupils
       const dx = snake[1] ? snake[0].x - snake[1].x : 0;
       const dy = snake[1] ? snake[0].y - snake[1].y : 0;
-      ctx.fillStyle = "#060c1a";
-      if (dy < 0) { ctx.fillRect(x + 1, y + 2, 2, 2); ctx.fillRect(x + 5, y + 2, 2, 2); }
-      else if (dy > 0) { ctx.fillRect(x + 1, y + 4, 2, 2); ctx.fillRect(x + 5, y + 4, 2, 2); }
-      else if (dx < 0) { ctx.fillRect(x + 2, y + 1, 2, 2); ctx.fillRect(x + 2, y + 5, 2, 2); }
-      else { ctx.fillRect(x + 4, y + 1, 2, 2); ctx.fillRect(x + 4, y + 5, 2, 2); }
-      if (scale !== 1) ctx.restore();
+      
+      // Soft ambient glow around head
+      ctx.shadowColor = "#88ffaa";
+      ctx.shadowBlur = 4;
+      
+      ctx.fillStyle = "#ffffff"; // Sclera
+      if (dy < 0) { ctx.fillRect(x + 1, y + 1, 3, 3); ctx.fillRect(x + 6, y + 1, 3, 3); }
+      else if (dy > 0) { ctx.fillRect(x + 1, y + 6, 3, 3); ctx.fillRect(x + 6, y + 6, 3, 3); }
+      else if (dx < 0) { ctx.fillRect(x + 1, y + 1, 3, 3); ctx.fillRect(x + 1, y + 6, 3, 3); }
+      else { ctx.fillRect(x + 6, y + 1, 3, 3); ctx.fillRect(x + 6, y + 6, 3, 3); }
+      
+      ctx.shadowBlur = 0; // Turn off glow for pupils
+      ctx.fillStyle = "#060c1a"; // Pupils
+      if (dy < 0) { ctx.fillRect(x + 2, y + 1, 1, 2); ctx.fillRect(x + 7, y + 1, 1, 2); }
+      else if (dy > 0) { ctx.fillRect(x + 2, y + 7, 1, 2); ctx.fillRect(x + 7, y + 7, 1, 2); }
+      else if (dx < 0) { ctx.fillRect(x + 1, y + 2, 2, 1); ctx.fillRect(x + 1, y + 7, 2, 1); }
+      else { ctx.fillRect(x + 7, y + 2, 2, 1); ctx.fillRect(x + 7, y + 7, 2, 1); }
+      
+      ctx.restore();
     } else {
+      // Body Segments
       const t = i / snake.length;
       const r = Math.round(34 + (Math.floor(t * 4)) * 4);
       const gv = Math.round(204 - t * 80);
-      drawCell(ctx, x, y, `rgb(${r},${gv},${Math.round(68 - t * 30)})`, GREEN_BODY, GREEN_SH);
+      drawCell(ctx, x, y, `rgb(${r},${gv},${Math.round(68 - t * 30)})`, GREEN_BODY, GREEN_SH, false);
     }
   });
 }
 
 function drawFood(ctx: CanvasRenderingContext2D, food: { x: number; y: number; bonus?: boolean }, pulse: number) {
   const x = BX + food.x * CS, y = BY + food.y * CS;
+  const s = 1 + Math.sin(pulse * 0.1) * 0.1;
+  const cx = x + CS / 2, cy = y + CS / 2;
+  
+  ctx.save(); 
+  ctx.translate(cx, cy); ctx.scale(s, s); ctx.translate(-cx, -cy);
+  
   if (food.bonus) {
-    const s = 1 + Math.sin(pulse * 0.1) * 0.12;
-    const cx = x + CS / 2, cy = y + CS / 2;
-    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s); ctx.translate(-cx, -cy);
-    drawCell(ctx, x, y, FOOD2_C, FOOD2_HI, "#aa8800");
-    ctx.restore();
+    ctx.shadowColor = "#ffcc00";
+    ctx.shadowBlur = 8 + Math.sin(pulse * 0.2) * 4;
+    drawCell(ctx, x, y, FOOD2_C, FOOD2_HI, "#aa8800", true);
   } else {
-    const s = 1 + Math.sin(pulse * 0.08) * 0.08;
-    const cx = x + CS / 2, cy = y + CS / 2;
-    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s); ctx.translate(-cx, -cy);
-    drawCell(ctx, x, y, FOOD_C, FOOD_HI, FOOD_SH);
-    ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillRect(x + 1, y + 1, 2, 2);
-    ctx.restore();
+    ctx.shadowColor = "#ff3333";
+    ctx.shadowBlur = 6 + Math.sin(pulse * 0.15) * 2;
+    drawCell(ctx, x, y, FOOD_C, FOOD_HI, FOOD_SH, true);
   }
+  
+  ctx.restore();
 }
 
 function drawDeadSnake(ctx: CanvasRenderingContext2D, snake: { x: number; y: number }[], frame: number) {
-  snake.forEach((seg) => {
+  snake.forEach((seg, i) => {
     const x = BX + seg.x * CS, y = BY + seg.y * CS;
     const alpha = Math.max(0, 1 - frame / 40);
     ctx.globalAlpha = alpha;
-    drawCell(ctx, x, y, "#553333", "#774444", "#331111");
+    // Exploding particles effect on death
+    const s = 1 + (frame / 20) * (i % 2 === 0 ? 1.2 : 0.8);
+    const cx = x + CS / 2, cy = y + CS / 2;
+    ctx.save();
+    ctx.translate(cx, cy); ctx.scale(s, s); ctx.translate(-cx, -cy);
+    drawCell(ctx, x, y, "#553333", "#774444", "#331111", true);
+    ctx.restore();
     ctx.globalAlpha = 1;
   });
 }
@@ -176,13 +306,18 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
 
   const hiRef = useRef(0);
 
+  // Auto-start game when component mounts
+  useEffect(() => {
+    init(false);
+  }, []);
+
   const init = useCallback((ai = false) => {
     const snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
     const food = spawnFood(snake);
     gs.current = {
       snake, food,
       bonusFood: null as any, bonusTimer: 0,
-      dir: DIR.RIGHT, nextDir: DIR.RIGHT,
+      dir: DIR.RIGHT, inputQueue: [] as {x:number, y:number}[],
       score: 0, level: 0, length: 3,
       moveTimer: 0, moveInterval: LEVEL_SPEEDS[0],
       eatAnim: 0, deathFrame: 0,
@@ -204,6 +339,7 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
         raf.current = requestAnimationFrame(loop);
         return;
       }
+      // Clamp delta-time to 50ms to prevent massive jumps on lag/tabbing out
       const dt = Math.min(ts - lastT.current, 50); lastT.current = ts;
       pulse.current += dt;
       const g = gs.current;
@@ -215,14 +351,17 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
           const oppKey = OPPOSITE[dirKey];
           const aiDirKey = Object.keys(DIR).find(k => DIR[k] === aiDir);
           if (aiDir && aiDirKey !== oppKey) {
-            g.nextDir = aiDir;
+            if (g.inputQueue.length === 0) g.inputQueue.push(aiDir);
           }
         }
 
         g.moveTimer += dt;
         if (g.moveTimer >= g.moveInterval) {
-          g.moveTimer = 0;
-          g.dir = g.nextDir;
+          g.moveTimer -= g.moveInterval; // Precise carry-over, not reset to 0
+          
+          if (g.inputQueue.length > 0) {
+            g.dir = g.inputQueue.shift();
+          }
 
           const head = g.snake[0];
           const next = { x: head.x + g.dir.x, y: head.y + g.dir.y };
@@ -300,9 +439,6 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
     // Y: S (Boost speed)
     // START: Enter (Start game/Quit)
     // SELECT: Shift (Toggle AI)
-    const KEY_DIR: Record<string, { x: number; y: number }> = {
-      ArrowUp: DIR.UP, ArrowDown: DIR.DOWN, ArrowLeft: DIR.LEFT, ArrowRight: DIR.RIGHT,
-    };
     function onKey(e: KeyboardEvent) {
       const g = gs.current;
       const phase = g?.phase ?? ui.phase;
@@ -334,19 +470,25 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
         }
       }
 
-      // A button (Z key) - start/confirm
-      if (e.code === "KeyZ") {
-        if (phase === "start" || phase === "gameover") { init(false); return; }
-      }
-
-      if (!g || phase !== "playing") return;
-      const d = KEY_DIR[e.code];
+      const KEY_DIR_MAP: Record<string, { x: number; y: number }> = {
+        ArrowUp: DIR.UP, KeyW: DIR.UP,
+        ArrowDown: DIR.DOWN, KeyS: DIR.DOWN,
+        ArrowLeft: DIR.LEFT, KeyA: DIR.LEFT,
+        ArrowRight: DIR.RIGHT, KeyD: DIR.RIGHT,
+      };
+      const d = KEY_DIR_MAP[e.code];
       if (d) {
         e.preventDefault();
-        const dirKey = Object.keys(DIR).find(k => DIR[k] === g.dir) || "RIGHT";
+        // Determine current effective direction based on tail of input queue
+        const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
+        const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
         const oppKey = OPPOSITE[dirKey];
         const dKey = Object.keys(DIR).find(k => DIR[k] === d);
-        if (dKey !== oppKey) g.nextDir = d;
+        
+        // Prevent 180-degree self-collisions and cap queue at 3 to prevent huge backlogs
+        if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
+          g.inputQueue.push(d);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
@@ -366,43 +508,56 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
     let d;
     if (Math.abs(dx) > Math.abs(dy)) d = dx < 0 ? DIR.LEFT : DIR.RIGHT;
     else d = dy < 0 ? DIR.UP : DIR.DOWN;
-    const dirKey = Object.keys(DIR).find(k => DIR[k] === g.dir) || "RIGHT";
+    
+    const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
+    const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
     const oppKey = OPPOSITE[dirKey];
     const dKey = Object.keys(DIR).find(k => DIR[k] === d);
-    if (dKey !== oppKey) g.nextDir = d;
+    
+    if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
+      g.inputQueue.push(d);
+    }
   };
 
   useEffect(() => {
     (window as any).__snakeInput = (type: string) => {
       const g = gs.current;
       if (!g) return;
+      
+      // START/GAMEOVER screens: only START starts game
+      if (g.phase === "start" || g.phase === "gameover") {
+        if (type === "START") init(false);
+        return;
+      }
+      
+      // START pauses/unpauses
       if (type === "START") {
-        onAction("QUIT_GAME");
-        return;
-      }
-      if (type === "SELECT") {
-        g.ai = !g.ai;
-        setUI(u => ({ ...u, ai: g.ai }));
-        return;
-      }
-      if (type === "B") {
         g.phase = g.phase === "paused" ? "playing" : "paused";
         setUI(u => ({ ...u, phase: g.phase }));
         return;
       }
-      if (g.phase === "start" || g.phase === "gameover") {
-        if (type === "A" || type === "START") init(false);
+      
+      // Y toggles AI mode
+      if (type === "Y") {
+        g.ai = !g.ai;
+        setUI(u => ({ ...u, ai: g.ai }));
         return;
       }
+      
+      if (!g || g.phase !== "playing") return;
+      
       const KEY_MAP: Record<string, { x: number; y: number }> = {
         UP: DIR.UP, DOWN: DIR.DOWN, LEFT: DIR.LEFT, RIGHT: DIR.RIGHT
       };
       const d = KEY_MAP[type];
       if (d) {
-        const dirKey = Object.keys(DIR).find(k => DIR[k] === g.dir) || "RIGHT";
+        const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
+        const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
         const oppKey = OPPOSITE[dirKey];
         const dKey = Object.keys(DIR).find(k => DIR[k] === d);
-        if (dKey !== oppKey) g.nextDir = d;
+        if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
+          g.inputQueue.push(d);
+        }
       }
     };
     return () => { delete (window as any).__snakeInput; };
@@ -411,72 +566,60 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
   const spd = Math.min(9, ui.level);
 
   return (
-    <div className="screen" onTouchStart={onTS} onTouchEnd={onTE} style={{
-      position: "relative",
-      width: "210px",
-      height: "184px",
-      display: "flex",
-      flexDirection: "column",
-      fontFamily: "'Press Start 2P', monospace",
-      overflow: "hidden",
-      background: "#060c1a",
-    }}>
-      {/* ── ROW 1: HUD 12px ── */}
-      <div className="hud" style={{
-        width: "210px",
-        height: "12px",
-        flex: "0 0 12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 5px",
-        background: "rgba(4,8,20,0.98)",
-        borderBottom: "1px solid #0d3010",
+    <OSLayout
+      customHints={
+        <>
+          <div className="vintage-hint" style={{ marginRight: "2px" }}>
+            <span className="vintage-hk">START</span>
+            <span className="vintage-ha">PAUSE</span>
+          </div>
+          <div className="vintage-hint" style={{ marginRight: "2px" }}>
+            <span className="vintage-hk">Y</span>
+            <span className="vintage-ha">AI</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">SEL</span>
+            <span className="vintage-ha">EXIT</span>
+          </div>
+        </>
+      }
+    >
+      <div onTouchStart={onTS} onTouchEnd={onTE} style={{
         position: "relative",
-        zIndex: 10,
-        overflow: "hidden",
-      }}>
-        <span className="hud-title" style={{ fontSize: "5px", color: "#22cc44", letterSpacing: "1px", lineHeight: 1 }}>SNAKE</span>
-        <span className="hud-score" style={{ fontSize: "5px", color: "#c8e0ff", letterSpacing: "0.5px", lineHeight: 1 }}>SC {String(ui.score).padStart(4, "0")}</span>
-        <span className="hud-hi" style={{ fontSize: "5px", color: "#ffd700", letterSpacing: "0.5px", lineHeight: 1 }}>HI {String(ui.hi).padStart(4, "0")}</span>
-      </div>
-
-      {/* ── ROW 2: GAME 160px ── */}
-      <div className="game-area" style={{
-        width: "210px",
-        height: "160px",
-        flex: "0 0 160px",
+        width: "100%",
+        height: "100%",
         display: "flex",
         flexDirection: "row",
-        position: "relative",
+        fontFamily: "'Press Start 2P', monospace",
         overflow: "hidden",
+        background: "#060c1a",
       }}>
-        <canvas ref={canvasRef} className="game-canvas" width={210} height={160} style={{
+        <canvas ref={canvasRef} className="game-canvas" width={130} height={134} style={{
           position: "absolute",
           top: 0,
           left: 0,
-          width: "210px",
-          height: "160px",
+          width: "130px",
+          height: "134px",
           display: "block",
           imageRendering: "pixelated",
           zIndex: 1,
         }} />
 
-        {/* board column for overlays */}
-        <div className="board-col" style={{
-          width: "160px",
-          height: "160px",
-          flex: "0 0 160px",
+        <div style={{
+          width: "130px",
+          height: "100%",
+          flex: "0 0 130px",
           position: "relative",
           zIndex: 2,
+          overflow: "hidden",
         }}>
           {ui.phase === "start" && (
             <div className="overlay" style={{
               position: "absolute",
               top: 0,
               left: 0,
-              width: "160px",
-              height: "160px",
+              width: "130px",
+              height: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -484,20 +627,20 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
               pointerEvents: "none",
             }}>
               <div className="ov-box" style={{
-                width: "138px",
+                width: "128px",
                 border: "1px solid #22cc44",
-                padding: "7px 8px",
+                padding: "4px 6px",
                 background: "rgba(4,8,20,0.97)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: "3px",
+                gap: "2px",
               }}>
                 <div className="ov-title" style={{ fontSize: "8px", lineHeight: 1, letterSpacing: "1px", color: "#22cc44" }}>SNAKE</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#0d3010", width: "100%" }} />
                 <div className="ov-lbl" style={{ fontSize: "4px", color: "#1a5022" }}>EAT · GROW · SURVIVE</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#0d3010", width: "100%" }} />
-                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ ANY KEY</div>
+                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS START</div>
               </div>
             </div>
           )}
@@ -506,8 +649,8 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
               position: "absolute",
               top: 0,
               left: 0,
-              width: "160px",
-              height: "160px",
+              width: "130px",
+              height: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -515,18 +658,18 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
               pointerEvents: "none",
             }}>
               <div className="ov-box" style={{
-                width: "138px",
+                width: "128px",
                 border: "1px solid #22cc44",
-                padding: "7px 8px",
+                padding: "4px 6px",
                 background: "rgba(4,8,20,0.97)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: "3px",
+                gap: "2px",
               }}>
                 <div className="ov-title" style={{ fontSize: "8px", lineHeight: 1, letterSpacing: "1px", color: "#22cc44" }}>PAUSE</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#0d3010", width: "100%" }} />
-                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS P</div>
+                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS B</div>
               </div>
             </div>
           )}
@@ -535,8 +678,8 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
               position: "absolute",
               top: 0,
               left: 0,
-              width: "160px",
-              height: "160px",
+              width: "130px",
+              height: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -544,9 +687,9 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
               pointerEvents: "none",
             }}>
               <div className="ov-box" style={{
-                width: "138px",
+                width: "128px",
                 border: "1px solid #ff3333",
-                padding: "7px 8px",
+                padding: "6px 8px",
                 background: "rgba(4,8,20,0.97)",
                 display: "flex",
                 flexDirection: "column",
@@ -560,7 +703,7 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
                 <div className="ov-score" style={{ fontSize: "6px", color: "#ffd700" }}>{String(ui.score).padStart(4, "0")}</div>
                 <div className="ov-lbl" style={{ fontSize: "4px", color: "#1a5022", marginTop: "2px" }}>LEN {ui.length} · LV {ui.level}</div>
                 <div className="ov-sep" style={{ height: "1px", background: "#0d3010", width: "100%" }} />
-                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ ENTER</div>
+                <div className="blink" style={{ fontSize: "4px", color: "#c8e0ff", letterSpacing: "0.3px", animation: "bl 0.8s step-end infinite" }}>▶ PRESS START</div>
               </div>
             </div>
           )}
@@ -568,131 +711,89 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
 
         {/* panel column */}
         <div className="panel-col" style={{
-          flex: 1,
-          height: "160px",
+          width: "52px",
+          height: "100%",
+          flex: "0 0 52px",
           display: "flex",
           flexDirection: "column",
-          padding: "5px 5px 4px 6px",
+          padding: "3px 3px",
           gap: 0,
           borderLeft: "1px solid #0d3010",
           background: "rgba(4,8,20,0.78)",
           position: "relative",
           zIndex: 2,
           overflow: "hidden",
+          justifyContent: "space-between",
         }}>
-          {ui.ai && (
-            <div className="ai-badge" style={{
-              fontSize: "4px",
-              background: "rgba(34,204,68,0.15)",
-              border: "1px solid #22cc44",
-              color: "#22cc44",
-              padding: "2px 4px",
-              borderRadius: "1px",
-              textAlign: "center",
-              marginBottom: "3px",
-              letterSpacing: "0.5px",
-              animation: "gp 1.5s ease-in-out infinite",
-            }}>AI ON</div>
-          )}
-
-          <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>SCORE</div>
-          <div className="p-val p-score" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#c8e0ff" }}>{String(ui.score).padStart(4, "0")}</div>
-
-          <div className="p-sep" style={{ height: "1px", background: "#0d3010", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>HI-SCORE</div>
-          <div className="p-val p-hi" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#ffd700" }}>{String(ui.hi).padStart(4, "0")}</div>
-
-          <div className="p-sep" style={{ height: "1px", background: "#0d3010", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>LENGTH</div>
-          <div className="p-val p-len" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#22cc44" }}>{String(ui.length).padStart(3, "0")}</div>
-
-          <div className="p-sep" style={{ height: "1px", background: "#0d3010", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>LEVEL</div>
-          <div className="p-val p-lv" style={{ fontSize: "6px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "4px", color: "#88ff99" }}>{String(ui.level).padStart(2, "0")}</div>
-
-          <div className="p-sep" style={{ height: "1px", background: "#0d3010", margin: "3px 0", flexShrink: 0 }} />
-          <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginBottom: "2px" }}>SPEED</div>
-          <div className="speed-bar" style={{ display: "flex", gap: "1px", marginTop: "1px" }}>
-            {Array.from({ length: 10 }, (_, i) => (
-              <div key={i} className="spd-seg" style={{
-                height: "4px",
-                flex: 1,
+          {/* Top section: scores */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            {ui.ai && (
+              <div className="ai-badge" style={{
+                fontSize: "4px",
+                background: "rgba(34,204,68,0.15)",
+                border: "1px solid #22cc44",
+                color: "#22cc44",
+                padding: "1px 2px",
                 borderRadius: "1px",
-                transition: "background 0.2s",
-                background: i <= spd ? "#22cc44" : "rgba(34,204,68,0.1)",
-                boxShadow: i <= spd ? "0 0 3px #22cc44" : "none",
-              }} />
-            ))}
+                textAlign: "center",
+                marginBottom: "2px",
+                letterSpacing: "0.5px",
+                animation: "gp 1.5s ease-in-out infinite",
+              }}>AI ON</div>
+            )}
+
+            <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1 }}>SCORE</div>
+            <div className="p-val p-score" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "3px", color: "#c8e0ff" }}>{String(ui.score).padStart(4, "0")}</div>
+
+            <div className="p-sep" style={{ height: "1px", background: "#0d3010", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>HI-SCORE</div>
+            <div className="p-val p-hi" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "3px", color: "#ffd700" }}>{String(ui.hi).padStart(4, "0")}</div>
           </div>
 
-          <div className="p-sep" style={{ height: "1px", background: "#0d3010", margin: "3px 0", flexShrink: 0 }} />
-          <div className="preview-wrap" style={{
-            width: "100%",
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-          }}>
-            <canvas ref={prevRef} className="prev-canvas" width={40} height={20} style={{
-              display: "block",
-              imageRendering: "pixelated",
-            }} />
+          {/* Middle section: stats */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <div className="p-sep" style={{ height: "1px", background: "#0d3010", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>LENGTH</div>
+            <div className="p-val p-len" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "3px", color: "#22cc44" }}>{String(ui.length).padStart(3, "0")}</div>
+
+            <div className="p-sep" style={{ height: "1px", background: "#0d3010", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>LEVEL</div>
+            <div className="p-val p-lv" style={{ fontSize: "7px", lineHeight: 1, letterSpacing: "0.5px", marginBottom: "3px", color: "#88ff99" }}>{String(ui.level).padStart(2, "0")}</div>
+          </div>
+
+          {/* Bottom section: speed + preview */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <div className="p-sep" style={{ height: "1px", background: "#0d3010", flexShrink: 0 }} />
+            <div className="p-label" style={{ fontSize: "4px", color: "#1a5022", letterSpacing: "0.5px", lineHeight: 1, marginTop: "2px" }}>SPEED</div>
+            <div className="speed-bar" style={{ display: "flex", gap: "1px", marginTop: "2px", marginBottom: "3px" }}>
+              {Array.from({ length: 10 }, (_, i) => (
+                <div key={i} className="spd-seg" style={{
+                  height: "5px",
+                  flex: 1,
+                  borderRadius: "1px",
+                  transition: "background 0.2s",
+                  background: i <= spd ? "#22cc44" : "rgba(34,204,68,0.1)",
+                  boxShadow: i <= spd ? "0 0 3px #22cc44" : "none",
+                }} />
+              ))}
+            </div>
+
+            <div className="p-sep" style={{ height: "1px", background: "#0d3010", flexShrink: 0 }} />
+            <div className="preview-wrap" style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "3px 0",
+            }}>
+              <canvas ref={prevRef} className="prev-canvas" width={40} height={20} style={{
+                display: "block",
+                imageRendering: "pixelated",
+              }} />
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* ── ROW 3: HINTS 12px ── */}
-      <div className="hints" style={{
-        width: "210px",
-        height: "12px",
-        flex: "0 0 12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "4px",
-        background: "rgba(4,8,20,0.98)",
-        borderTop: "1px solid #0d3010",
-        position: "relative",
-        zIndex: 10,
-        overflow: "hidden",
-      }}>
-        {[["D-PAD", "MOVE"], ["A", "START"], ["B", "PAUSE"], ["X/Y", "BOOST"], ["SEL", "AI"], ["START", "QUIT"]].map(([k, a]) => (
-          <div className="hint" key={k} style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <span className="hk" style={{
-              fontSize: "3.5px",
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              borderRadius: "1px",
-              padding: "1px 2px",
-              color: "#fff",
-              lineHeight: 1,
-            }}>{k}</span>
-            <span className="ha" style={{ fontSize: "3.5px", color: "#1a5022", lineHeight: 1 }}>{a}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="scanlines" style={{
-        position: "absolute",
-        top: "12px",
-        left: 0,
-        right: 0,
-        bottom: "12px",
-        zIndex: 50,
-        pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.09) 2px,rgba(0,0,0,0.09) 3px)",
-      }} />
-      <div className="vignette" style={{
-        position: "absolute",
-        top: "12px",
-        left: 0,
-        right: 0,
-        bottom: "12px",
-        zIndex: 49,
-        pointerEvents: "none",
-        background: "radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.55) 100%)",
-      }} />
     </div>
+    </OSLayout>
   );
 }

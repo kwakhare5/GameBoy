@@ -9,6 +9,12 @@ interface GameBoyState {
   // Current screen
   currentScreen: 'OFF' | 'BOOTING' | 'MAIN_MENU' | 'POWER_CONFIRM' | 'PLAYING_SNAKE' | 'PLAYING_TETRIS' | 'PLAYING_MARIO' | 'VIEWING_STATS' | 'VIEWING_SETTINGS';
   
+  // OS Transitions & Modals
+  isCartridgeBooting: boolean;
+  activeOSModal: string | null;
+  setCartridgeBooting: (isBooting: boolean) => void;
+  setOSModal: (message: string | null) => void;
+
   // Menu state
   selectedMenuItem: number;
   
@@ -32,16 +38,18 @@ interface GameBoyState {
 
 export const useGameBoyStore = create<GameBoyState>((set) => ({
   // Initial state
-  isPowered: false,
+  isPowered: true,
   isBooting: false,
   bootStep: 0,
-  currentScreen: 'OFF',
+  currentScreen: 'MAIN_MENU',
   selectedMenuItem: 0,
   soundEnabled: true,
   volume: 80,
   brightness: 100,
   theme: 2, // 0: NEON RED, 1: EMERALD, 2: VINTAGE OS, 3: COBALT
   powerOption: 'NO',
+  isCartridgeBooting: false,
+  activeOSModal: null,
   
   // Actions
   powerOn: () => {
@@ -49,13 +57,16 @@ export const useGameBoyStore = create<GameBoyState>((set) => ({
     setTimeout(() => set({ bootStep: 2 }), 1500);
     setTimeout(() => set({ isBooting: false, bootStep: 0, currentScreen: 'MAIN_MENU' }), 3500);
   },
-  
+
   powerOff: () => {
     set({ isPowered: false, currentScreen: 'OFF' });
   },
   
   navigateTo: (screen) => set({ currentScreen: screen }),
   
+  setCartridgeBooting: (isBooting) => set({ isCartridgeBooting: isBooting }),
+  setOSModal: (message) => set({ activeOSModal: message }),
+
   setSelectedMenuItem: (index) => set({ selectedMenuItem: index }),
   
   setSetting: (key, value) => set({ [key]: value }),

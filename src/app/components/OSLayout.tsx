@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/VintageOS.css";
+import { useGameBoyStore } from "../../stores/gameBoyStore";
 
 interface OSLayoutProps {
   children: React.ReactNode;
   customHints?: React.ReactNode;
 }
 
+const THEMES = [
+  // 0: NEON RED
+  { bg: "#0a0608", orange: "#ff3333", gold: "#ff8888", text: "#ffc8c8", dim: "#5a2828", border: "#3a1010" },
+  // 1: EMERALD
+  { bg: "#040e08", orange: "#22cc44", gold: "#88ff88", text: "#c8ffd0", dim: "#1a5028", border: "#0d3010" },
+  // 2: VINTAGE OS (default)
+  { bg: "#060c1a", orange: "#ff8c00", gold: "#ffd700", text: "#c8e0ff", dim: "#3a5888", border: "#1a3060" },
+  // 3: COBALT
+  { bg: "#060818", orange: "#3b82f6", gold: "#93c5fd", text: "#dbeafe", dim: "#1e3a5f", border: "#1e3060" },
+];
+
 export default function OSLayout({ children, customHints }: OSLayoutProps) {
   const [time, setTime] = useState("");
+  const { isCartridgeBooting, activeOSModal } = useGameBoyStore();
 
   useEffect(() => {
     const tick = () => {
@@ -28,10 +41,14 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
   const [brightness, setBrightness] = useState(() =>
     parseInt(localStorage.getItem("gb_brightness") || "100", 10)
   );
+  const [themeIdx, setThemeIdx] = useState(() =>
+    parseInt(localStorage.getItem("gb_theme") || "2", 10)
+  );
 
   useEffect(() => {
     const handleStorage = () => {
       setBrightness(parseInt(localStorage.getItem("gb_brightness") || "100", 10));
+      setThemeIdx(parseInt(localStorage.getItem("gb_theme") || "2", 10));
     };
     window.addEventListener("storage", handleStorage);
     const interval = setInterval(handleStorage, 500);
@@ -41,10 +58,20 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
     };
   }, []);
 
+  const t = THEMES[themeIdx] || THEMES[2];
+  const themeVars: React.CSSProperties = {
+    "--bg": t.bg,
+    "--orange": t.orange,
+    "--gold": t.gold,
+    "--text": t.text,
+    "--dim": t.dim,
+    "--border": t.border,
+  } as React.CSSProperties;
+
   const brightnessOverlayOpacity = 1 - (brightness / 100);
 
   return (
-    <div className="vintage-ui">
+    <div className="vintage-ui" style={{ ...themeVars, width: "182px", height: "158px", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative" }}>
       {/* Backgrounds */}
       <div className="vintage-screen-bg" />
       <div className="vintage-screen-glow" />
@@ -57,8 +84,8 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
         style={{ opacity: brightnessOverlayOpacity }}
       />
 
-      {/* TOP HUD - FIXED (Battery, Device Name, Time) */}
-      <div className="vintage-hud" style={{ zIndex: 200 }}>
+      {/* TOP NAV BAR - 12px LOCKED (appears on EVERY screen) */}
+      <div className="vintage-hud" style={{ zIndex: 200, flex: "none", height: "12px", minHeight: "12px", maxHeight: "12px" }}>
         <div className="vintage-hud-sys">GAME BOY</div>
         <div className="vintage-hud-right">
           <div className="vintage-bat">
@@ -73,13 +100,54 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
         </div>
       </div>
 
-      {/* CONTENT AREA - Scrollable */}
-      <div className="vintage-content-area">
+      {/* CONTENT AREA - 134px (158 - 12 - 12 = 134) */}
+      <div className={`vintage-content-area ${isCartridgeBooting ? 'os-boot-seq' : ''}`} style={{ flex: "none", height: "134px", minHeight: "134px", maxHeight: "134px", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
         {children}
+
+        {/* GLOBAL OS MODAL OVERLAY */}
+        {activeOSModal && (
+          <div className="os-modal-overlay" style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(6, 12, 26, 0.85)",
+            zIndex: 999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px"
+          }}>
+            <div className="os-modal os-modal-content" style={{
+              width: "140px",
+              background: "#0a1428",
+              border: "2px solid #ff3333",
+              borderRadius: "2px",
+              padding: "12px 8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              boxShadow: "0 4px 12px rgba(255,51,51,0.2)"
+            }}>
+              <span style={{ color: "#ff8c00", fontSize: "6px", marginBottom: "8px", textAlign: "center", lineHeight: "1.4" }}>SYSTEM ALERT</span>
+              <span style={{ color: "#c8e0ff", fontSize: "5px", textAlign: "center", lineHeight: "1.5", marginBottom: "12px", padding: "0 4px", whiteSpace: "pre-wrap" }}>
+                {activeOSModal}
+              </span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <span className="vintage-hint" style={{ background: "rgba(0,0,0,0.5)", padding: "2px 4px", borderRadius: "1px", display: "flex", gap: "2px", alignItems: "center" }}>
+                  <span className="vintage-hk" style={{ color: "#22cc44", fontSize: "5px" }}>A</span>
+                  <span className="vintage-ha" style={{ fontSize: "4px" }}>OK</span>
+                </span>
+                <span className="vintage-hint" style={{ background: "rgba(0,0,0,0.5)", padding: "2px 4px", borderRadius: "1px", display: "flex", gap: "2px", alignItems: "center" }}>
+                  <span className="vintage-hk" style={{ color: "#ff3333", fontSize: "5px" }}>B</span>
+                  <span className="vintage-ha" style={{ fontSize: "4px" }}>CLOSE</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* BOTTOM HINTS - FIXED (Key bindings - no D-PAD) */}
-      <div className="vintage-hints" style={{ zIndex: 200 }}>
+      {/* BOTTOM NAV BAR - 12px LOCKED (appears on EVERY screen) */}
+      <div className="vintage-hints" style={{ zIndex: 200, flex: "none", height: "12px", minHeight: "12px", maxHeight: "12px" }}>
         {customHints || (
           <>
             <div className="vintage-hint">
@@ -89,18 +157,6 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
             <div className="vintage-hint">
               <span className="vintage-hk">B</span>
               <span className="vintage-ha">BACK</span>
-            </div>
-            <div className="vintage-hint">
-              <span className="vintage-hk">X/Y</span>
-              <span className="vintage-ha">ACTION</span>
-            </div>
-            <div className="vintage-hint">
-              <span className="vintage-hk">START</span>
-              <span className="vintage-ha">PLAY</span>
-            </div>
-            <div className="vintage-hint">
-              <span className="vintage-hk">SEL</span>
-              <span className="vintage-ha">OPT</span>
             </div>
           </>
         )}

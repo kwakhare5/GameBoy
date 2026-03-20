@@ -1,11 +1,7 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import OSLayout from "./components/OSLayout";
 // @ts-ignore
 import { NES } from "jsnes";
-
-interface NESEmulatorProps {
-  onAction: (type: string) => void;
-}
 
 // NES controller button indices
 const BTN: Record<string, number> = {
@@ -13,7 +9,7 @@ const BTN: Record<string, number> = {
   UP: 4, DOWN: 5, LEFT: 6, RIGHT: 7,
 };
 
-export default function NESEmulator({ onAction }: NESEmulatorProps) {
+export default function NESEmulator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nesRef = useRef<any>(null);
   const frameRef = useRef<number>(0);
@@ -166,29 +162,17 @@ export default function NESEmulator({ onAction }: NESEmulatorProps) {
 
   const nesHints = (
     <>
-      <div className="vintage-hint">
-        <span className="vintage-hk">A</span>
-        <span className="vintage-ha">JUMP</span>
+      <div className="vintage-hint" style={{ marginRight: "2px" }}>
+        <span className="vintage-hk">A/B</span>
+        <span className="vintage-ha">JMP/RUN</span>
       </div>
-      <div className="vintage-hint">
-        <span className="vintage-hk">B</span>
-        <span className="vintage-ha">RUN</span>
-      </div>
-      <div className="vintage-hint">
-        <span className="vintage-hk">X/Y</span>
-        <span className="vintage-ha">ITEM</span>
-      </div>
-      <div className="vintage-hint">
-        <span className="vintage-hk">D-PAD</span>
-        <span className="vintage-ha">MOVE</span>
-      </div>
-      <div className="vintage-hint">
+      <div className="vintage-hint" style={{ marginRight: "2px" }}>
         <span className="vintage-hk">START</span>
-        <span className="vintage-ha">PAUSE</span>
+        <span className="vintage-ha">PLAY</span>
       </div>
       <div className="vintage-hint">
         <span className="vintage-hk">SEL</span>
-        <span className="vintage-ha">OPT</span>
+        <span className="vintage-ha">EXIT</span>
       </div>
     </>
   );

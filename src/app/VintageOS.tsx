@@ -13,8 +13,8 @@ const menuItems = [
     id: "snake",
     name: "SNAKE",
     genre: "SURVIVAL",
-    hs: "9840",
-    plays: "47",
+    hs: "0",
+    plays: "0",
     tag: "●●●",
     img: "/images/covers/snake_2-removebg-preview.png",
   },
@@ -22,8 +22,8 @@ const menuItems = [
     id: "tetris",
     name: "TETRIS",
     genre: "PUZZLE",
-    hs: "24500",
-    plays: "31",
+    hs: "0",
+    plays: "0",
     tag: "●●●",
     img: "/images/covers/tetris-removebg-preview.png",
   },
@@ -31,8 +31,8 @@ const menuItems = [
     id: "mario",
     name: "MARIO",
     genre: "ACTION",
-    hs: "18200",
-    plays: "62",
+    hs: "1-1 CLR",
+    plays: "0",
     tag: "●●●",
     img: "/images/covers/Mario_1-removebg-preview.png",
   },
@@ -61,10 +61,43 @@ const menuItems = [
 // Pixel art rendering logic removed in favor of uploaded cover images.
 
 export default function VintageOS({ activeIndex }: VintageOSProps) {
+  const [stats, setStats] = React.useState<Record<string, { hs: string, plays: string }>>({});
+
+  React.useEffect(() => {
+    setStats({
+      snake: {
+        hs: String(parseInt(localStorage.getItem("snake_high_score") || "0", 10)),
+        plays: String(parseInt(localStorage.getItem("snake_plays") || "0", 10)),
+      },
+      tetris: {
+        hs: String(parseInt(localStorage.getItem("tetris_high_score") || "0", 10)),
+        plays: String(parseInt(localStorage.getItem("tetris_plays") || "0", 10)),
+      },
+      mario: {
+        hs: "1-1 CLR",
+        plays: String(parseInt(localStorage.getItem("mario_plays") || "0", 10)),
+      }
+    });
+  }, []);
+
   const activeData = menuItems[activeIndex] || menuItems[0];
+  const activeStats = stats[activeData.id] || { hs: activeData.hs, plays: activeData.plays };
 
   return (
-    <OSLayout>
+    <OSLayout
+      customHints={
+        <>
+          <div className="vintage-hint" style={{ marginRight: "2px" }}>
+            <span className="vintage-hk">A</span>
+            <span className="vintage-ha">OPEN</span>
+          </div>
+          <div className="vintage-hint">
+            <span className="vintage-hk">START</span>
+            <span className="vintage-ha">OPEN</span>
+          </div>
+        </>
+      }
+    >
       {/* Title Row */}
       <div className="vintage-title-row">
         <span className="vintage-title-main">GAME BOY</span>
@@ -114,11 +147,11 @@ export default function VintageOS({ activeIndex }: VintageOSProps) {
           <div className="vintage-prev-stats">
             <div className="vintage-stat-row">
               <span className="vintage-stat-label">HI-SC</span>
-              <span className="vintage-stat-val">{activeData.hs}</span>
+              <span className="vintage-stat-val">{activeStats.hs}</span>
             </div>
             <div className="vintage-stat-row">
               <span className="vintage-stat-label">PLAYS</span>
-              <span className="vintage-stat-val">{activeData.plays}</span>
+              <span className="vintage-stat-val">{activeStats.plays}</span>
             </div>
           </div>
         </div>
