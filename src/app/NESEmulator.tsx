@@ -61,17 +61,26 @@ export default function NESEmulator() {
         }
         nes.loadROM(romStr);
 
-        // Start frame loop (throttled to 60 FPS)
+        // Start frame loop (precise accumulator to prevent 0.75x slowdown on mobile frames)
         let lastTime = performance.now();
         const fpsInterval = 1000 / 60; // 60 FPS
+        let timeAccumulator = 0;
 
         const loop = (time: number) => {
           frameRef.current = requestAnimationFrame(loop);
           const elapsed = time - lastTime;
+          lastTime = time;
           
-          if (elapsed >= fpsInterval) {
-            lastTime = time - (elapsed % fpsInterval);
+          timeAccumulator += elapsed;
+          
+          // Cap accumulator to avoid fast-forward bursts after long freezes
+          if (timeAccumulator > fpsInterval * 2) {
+            timeAccumulator = fpsInterval * 2;
+          }
+
+          while (timeAccumulator >= fpsInterval) {
             nes.frame();
+            timeAccumulator -= fpsInterval;
           }
         };
         frameRef.current = requestAnimationFrame(loop);

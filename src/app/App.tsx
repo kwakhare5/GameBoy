@@ -35,8 +35,8 @@ export default function App() {
       const scaleY = (height * 0.9) / targetHeight;
       const newScale = Math.min(scaleX, scaleY);
 
-      // Ensure minimum scale of 1.5 for visibility
-      setScale(Math.max(newScale, 1.5));
+      // Strictly fit screen, removed max() override causing overflow.
+      setScale(newScale);
     };
 
     handleResize();
@@ -219,6 +219,10 @@ export default function App() {
         justifyContent: "center",
         background: "#e8e5e0",
         overflow: "hidden",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        touchAction: "none",
       }}
     >
       <div
