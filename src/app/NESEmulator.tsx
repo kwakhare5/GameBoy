@@ -25,20 +25,18 @@ export default function NESEmulator() {
     if (!ctx) return;
 
     const imageData = ctx.createImageData(256, 240);
+    // Fast 32-bit rendering buffers for massive mobile performance boost
+    const buf = new ArrayBuffer(imageData.data.length);
+    const buf8 = new Uint8ClampedArray(buf);
+    const data32 = new Uint32Array(buf);
+
+    let frameReady = false;
+    let latestFrameBuffer: any = null;
 
     const nes = new NES({
       onFrame: (frameBuffer: any) => {
-        // jsnes outputs each pixel as 0x00BBGGRR
-        // Canvas ImageData is [R, G, B, A] per pixel
-        for (let i = 0; i < 256 * 240; i++) {
-          const px = frameBuffer[i];
-          const off = i * 4;
-          imageData.data[off]     = px & 0xff;         // R
-          imageData.data[off + 1] = (px >> 8) & 0xff;  // G
-          imageData.data[off + 2] = (px >> 16) & 0xff;  // B
-          imageData.data[off + 3] = 0xff;               // A
-        }
-        ctx.putImageData(imageData, 0, 0);
+        frameReady = true;
+        latestFrameBuffer = frameBuffer;
       },
       onAudioSample: () => {
         // Audio disabled to prevent lag
@@ -73,14 +71,27 @@ export default function NESEmulator() {
           
           timeAccumulator += elapsed;
           
-          // Cap accumulator to avoid fast-forward bursts after long freezes
-          if (timeAccumulator > fpsInterval * 2) {
-            timeAccumulator = fpsInterval * 2;
+          // Cap accumulator to avoid spiral of death on lag spikes
+          if (timeAccumulator > fpsInterval * 3) {
+            timeAccumulator = fpsInterval * 3;
           }
 
+          let ranFrames = 0;
           while (timeAccumulator >= fpsInterval) {
             nes.frame();
             timeAccumulator -= fpsInterval;
+            ranFrames++;
+          }
+
+          // Only render to screen ONCE per browser paint tick to save massive resources
+          if (ranFrames > 0 && frameReady && latestFrameBuffer) {
+            for (let i = 0; i < 256 * 240; i++) {
+              // 0xff000000 sets Alpha=255. Little-endian layout pushes this to [R,G,B,255] directly
+              data32[i] = 0xff000000 | latestFrameBuffer[i];
+            }
+            imageData.data.set(buf8);
+            ctx.putImageData(imageData, 0, 0);
+            frameReady = false;
           }
         };
         frameRef.current = requestAnimationFrame(loop);
