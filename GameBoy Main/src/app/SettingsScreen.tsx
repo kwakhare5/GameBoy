@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import OSLayout from "./components/OSLayout";
 import { useGameBoySound } from "../hooks/useGameBoySound";
+import { useGameBoyStore } from "../stores/gameBoyStore";
 
 interface SettingsScreenProps {
   onAction?: (type: string) => void;
@@ -14,61 +15,63 @@ const THEMES = [
 ];
 
 export default function SettingsScreen({ onAction }: SettingsScreenProps) {
-  const { enabled, setEnabled, play } = useGameBoySound();
-  const [activeIndex, setActiveIndex] = useState(0); // 0: Sound, 1: Volume, 2: Brightness, 3: Theme, 4: Reset
-  const [soundEnabled, setSoundEnabled] = useState(enabled);
-  const [volume, setVolume] = useState(() => parseInt(localStorage.getItem("gb_volume") || "80", 10));
-  const [brightness, setBrightness] = useState(() => parseInt(localStorage.getItem("gb_brightness") || "100", 10));
-  const [theme, setTheme] = useState(() => parseInt(localStorage.getItem("gb_theme") || "2", 10));
+  const { play, enabled: soundEnabled, setEnabled: setSoundEnabled, setVolume: setAudioVolume } = useGameBoySound();
+  const { volume, brightness, theme, setSetting } = useGameBoyStore();
+  const [activeIndex, setActiveIndex] = useState(0); // 0-5: Sound, Vol, Bri, Theme, Reset, Info
   const [resetFeedback, setResetFeedback] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleInput = useCallback((type: string) => {
     if (type === "UP") {
-      setActiveIndex((prev) => (prev <= 0 ? 4 : prev - 1));
+      setActiveIndex((prev) => (prev <= 0 ? 5 : prev - 1));
       play("MOVE");
     } else if (type === "DOWN") {
-      setActiveIndex((prev) => (prev >= 4 ? 0 : prev + 1));
+      setActiveIndex((prev) => (prev >= 5 ? 0 : prev + 1));
       play("MOVE");
     } else if (type === "LEFT") {
-      if (activeIndex === 0) {
+      if (activeIndex === 1) { // SOUND
         setSoundEnabled(false);
-        setEnabled(false);
+        setSetting("soundEnabled", false);
         play("BACK");
-      } else if (activeIndex === 1) {
-        setVolume((prev) => Math.max(0, prev - 10));
+      } else if (activeIndex === 2) { // VOL
+        const newVol = Math.max(0, volume - 10);
+        setSetting("volume", newVol);
+        setAudioVolume(newVol / 100);
         play("MOVE");
-      } else if (activeIndex === 2) {
-        setBrightness((prev) => Math.max(10, prev - 10));
+      } else if (activeIndex === 3) { // BRI
+        setSetting("brightness", Math.max(10, brightness - 10));
         play("MOVE");
-      } else if (activeIndex === 3) {
-        setTheme((prev) => (prev <= 0 ? THEMES.length - 1 : prev - 1));
+      } else if (activeIndex === 4) { // THEME
+        setSetting("theme", theme <= 0 ? THEMES.length - 1 : theme - 1);
         play("SELECT");
       }
     } else if (type === "RIGHT") {
-      if (activeIndex === 0) {
+      if (activeIndex === 1) { // SOUND
         setSoundEnabled(true);
-        setEnabled(true);
+        setSetting("soundEnabled", true);
         play("CONFIRM");
-      } else if (activeIndex === 1) {
-        setVolume((prev) => Math.min(100, prev + 10));
+      } else if (activeIndex === 2) { // VOL
+        const newVol = Math.min(100, volume + 10);
+        setSetting("volume", newVol);
+        setAudioVolume(newVol / 100);
         play("MOVE");
-      } else if (activeIndex === 2) {
-        setBrightness((prev) => Math.min(100, prev + 10));
+      } else if (activeIndex === 3) { // BRI
+        setSetting("brightness", Math.min(100, brightness + 10));
         play("MOVE");
-      } else if (activeIndex === 3) {
-        setTheme((prev) => (prev >= THEMES.length - 1 ? 0 : prev + 1));
+      } else if (activeIndex === 4) { // THEME
+        setSetting("theme", theme >= THEMES.length - 1 ? 0 : theme + 1);
         play("SELECT");
       }
     } else if (type === "A") {
-      if (activeIndex === 0) {
+      if (activeIndex === 1) { // SOUND
         const newVal = !soundEnabled;
         setSoundEnabled(newVal);
-        setEnabled(newVal);
+        setSetting("soundEnabled", newVal);
         play(newVal ? "CONFIRM" : "BACK");
-      } else if (activeIndex === 3) {
-        setTheme((prev) => (prev + 1) % THEMES.length);
+      } else if (activeIndex === 4) { // THEME
+        setSetting("theme", (theme + 1) % THEMES.length);
         play("SELECT");
-      } else if (activeIndex === 4) {
+      } else if (activeIndex === 5) { // RESET
         // Reset all scores
         localStorage.removeItem("snake_high_score");
         localStorage.removeItem("snake_max_length");
@@ -86,20 +89,23 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
       play("BACK");
       if (onAction) onAction("QUIT_GAME");
     }
-  }, [activeIndex, onAction, soundEnabled, play, setEnabled]);
+  }, [activeIndex, onAction, soundEnabled, volume, brightness, theme, setSetting, play]);
 
   useEffect(() => {
-    (window as any).__settingsInput = handleInput;
+    (window as any).__gameInput = handleInput;
     return () => {
-      delete (window as any).__settingsInput;
+      delete (window as any).__gameInput;
     };
   }, [handleInput]);
 
+  // Auto-scroll logic
   useEffect(() => {
-    localStorage.setItem("gb_volume", String(volume));
-    localStorage.setItem("gb_brightness", String(brightness));
-    localStorage.setItem("gb_theme", String(theme));
-  }, [volume, brightness, theme]);
+    if (!scrollRef.current) return;
+    const activeEl = scrollRef.current.querySelector('[data-active="true"]');
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [activeIndex]);
 
   const volBars = Math.round(volume / 10);
   const briBars = Math.round(brightness / 10);
@@ -113,8 +119,8 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
             <span className="vintage-ha">TOGGLE</span>
           </div>
           <div className="vintage-hint">
-            <span className="vintage-hk">B</span>
-            <span className="vintage-ha">BACK</span>
+            <span className="vintage-hk">SEL</span>
+            <span className="vintage-ha">EXIT</span>
           </div>
         </>
       }
@@ -125,28 +131,57 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
         <span className="vintage-title-tag">SETTINGS</span>
       </div>
 
-      {/* Content - Uses full remaining space with even distribution */}
-      <div className="vintage-main-area" style={{ overflow: "hidden", flexDirection: "column", padding: "3px 2px" }}>
-        <div className="flex flex-col gap-[3px]" style={{ flex: 1, overflow: "hidden", justifyContent: "space-between" }}>
+      {/* Content Area */}
+      <div 
+        ref={scrollRef}
+        className="vintage-main-area flex-col p-2 gap-2 overflow-y-auto scrollbar-hide scroll-smooth"
+      >
+        <div className="flex flex-col gap-[3px] w-full">
+
+          {/* ═══ ABOUT DEVICE ═══ */}
+          <div 
+            data-active={activeIndex === 0}
+            className={`flex flex-col gap-[3px] p-[5px] rounded-[2px] transition-colors ${activeIndex === 0 ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"} mb-[1px]`}>
+            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.05)] pb-[2px] mb-[1px]">
+              <span className={`text-[4px] font-bold tracking-widest ${activeIndex === 0 ? "text-[#ff8c00]" : "text-[#888]"}`}>DEVICE MODEL</span>
+              <span className={`text-[4.5px] font-black ${activeIndex === 0 ? "text-white" : "text-[#aaa]"}`}>DMG-01-V</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.05)] pb-[2px] mb-[1px]">
+              <span className={`text-[4px] font-bold tracking-widest ${activeIndex === 0 ? "text-[#ff8c00]" : "text-[#888]"}`}>SERIAL ID</span>
+              <span className={`text-[4.5px] font-black ${activeIndex === 0 ? "text-white" : "text-[#aaa]"}`}>GB-2026-X42</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.05)] pb-[2px] mb-[1px]">
+              <span className={`text-[4px] font-bold tracking-widest ${activeIndex === 0 ? "text-[#ff8c00]" : "text-[#888]"}`}>OS BUILD</span>
+              <span className={`text-[4px] font-black ${activeIndex === 0 ? "text-white" : "text-[#aaa]"}`}>2026.03.29.v1.0.6</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={`text-[4px] font-bold tracking-widest ${activeIndex === 0 ? "text-[#ff8c00]" : "text-[#888]"}`}>BATTERY</span>
+              <span className={`text-[4.5px] font-black ${activeIndex === 0 ? "text-[#22c55e]" : "text-[#aaa]"} flex gap-[3px] items-center`}>
+                98% <div className="flex gap-[0.5px]"><div className={`w-[1.5px] h-[3px] ${activeIndex === 0 ? "bg-[#22c55e]" : "bg-[#22c55e]/50"}`}></div><div className={`w-[1.5px] h-[3px] ${activeIndex === 0 ? "bg-[#22c55e]" : "bg-[#22c55e]/50"}`}></div><div className={`w-[1.5px] h-[3px] ${activeIndex === 0 ? "bg-[#22c55e]" : "bg-[#22c55e]/50"}`}></div><div className="w-[1.5px] h-[3px] bg-[#666]"></div></div>
+              </span>
+            </div>
+          </div>
 
           {/* ═══ SOUND ═══ */}
-          <div className={`flex items-center justify-between p-[5px] border rounded-[2px] transition-colors ${activeIndex === 0 ? "bg-[rgba(255,140,0,0.15)] border-[var(--orange)]" : "bg-[rgba(6,12,26,0.8)] border-[var(--border)]"}`}>
-            <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 0 ? "text-[var(--orange)]" : "text-[var(--dim)]"}`}>SOUND</span>
+          <div 
+            data-active={activeIndex === 1}
+            className={`flex items-center justify-between p-[5px] rounded-[2px] transition-colors ${activeIndex === 1 ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}>
+            <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 1 ? "text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.8)]" : "text-[#888]"}`}>SOUND</span>
             <div className="flex gap-[3px]">
               <span
-                className={`text-[5px] font-black px-[4px] py-[1px] rounded-[1px] border transition-all ${
+                className={`text-[4.5px] font-black px-[4px] py-[1px] rounded-[1px] border transition-all ${
                   soundEnabled
-                    ? "bg-[#22c55e] text-black border-[#16a34a]"
-                    : "bg-transparent text-[var(--dim)] border-[var(--border)]"
+                    ? "bg-[#ff8c00] text-black border-[#ff8c00] shadow-[0_0_3px_rgba(255,140,0,0.5)]"
+                    : "bg-transparent text-[#666] border-[#333]"
                 }`}
               >
                 ON
               </span>
               <span
-                className={`text-[5px] font-black px-[4px] py-[1px] rounded-[1px] border transition-all ${
+                className={`text-[4.5px] font-black px-[4px] py-[1px] rounded-[1px] border transition-all ${
                   !soundEnabled
-                    ? "bg-[#ef4444] text-black border-[#dc2626]"
-                    : "bg-transparent text-[var(--dim)] border-[var(--border)]"
+                    ? "bg-[#ff8c00] text-black border-[#ff8c00] shadow-[0_0_3px_rgba(255,140,0,0.5)]"
+                    : "bg-transparent text-[#666] border-[#333]"
                 }`}
               >
                 OFF
@@ -155,10 +190,12 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
           </div>
 
           {/* ═══ VOLUME ═══ */}
-          <div className={`flex flex-col gap-[3px] p-[5px] border rounded-[2px] transition-colors ${activeIndex === 1 ? "bg-[rgba(255,140,0,0.15)] border-[var(--orange)]" : "bg-[rgba(6,12,26,0.8)] border-[var(--border)]"}`}>
+          <div 
+            data-active={activeIndex === 2}
+            className={`flex flex-col gap-[3px] p-[5px] rounded-[2px] transition-colors ${activeIndex === 2 ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}>
             <div className="flex justify-between items-center">
-              <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 1 ? "text-[var(--orange)]" : "text-[var(--dim)]"}`}>VOLUME</span>
-              <span className="text-[5px] font-bold text-[var(--text)]">{volume}%</span>
+              <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 2 ? "text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.8)]" : "text-[#888]"}`}>VOLUME</span>
+              <span className="text-[4.5px] font-bold text-[#aaa]">{volume}%</span>
             </div>
             <div className="flex gap-[1px]">
               {Array.from({ length: 10 }).map((_, i) => (
@@ -166,8 +203,9 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
                   key={i}
                   className="flex-1 h-[5px] rounded-[0.5px] transition-all"
                   style={{
-                    background: i < volBars ? "#a855f7" : "rgba(0,0,0,0.5)",
-                    border: `0.5px solid ${i < volBars ? "#7c3aed" : "rgba(255,255,255,0.05)"}`,
+                    background: i < volBars ? "#ff8c00" : "rgba(0,0,0,0.5)",
+                    border: `0.5px solid ${i < volBars ? "rgba(255,140,0,0.8)" : "rgba(255,255,255,0.05)"}`,
+                    boxShadow: i < volBars ? "0 0 2px rgba(255,140,0,0.4)" : "none",
                   }}
                 />
               ))}
@@ -175,10 +213,12 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
           </div>
 
           {/* ═══ BRIGHTNESS ═══ */}
-          <div className={`flex flex-col gap-[3px] p-[5px] border rounded-[2px] transition-colors ${activeIndex === 2 ? "bg-[rgba(255,140,0,0.15)] border-[var(--orange)]" : "bg-[rgba(6,12,26,0.8)] border-[var(--border)]"}`}>
+          <div 
+            data-active={activeIndex === 3}
+            className={`flex flex-col gap-[3px] p-[5px] rounded-[2px] transition-colors ${activeIndex === 3 ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}>
             <div className="flex justify-between items-center">
-              <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 2 ? "text-[var(--orange)]" : "text-[var(--dim)]"}`}>BRIGHTNESS</span>
-              <span className="text-[5px] font-bold text-[var(--text)]">{brightness}%</span>
+              <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 3 ? "text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.8)]" : "text-[#888]"}`}>BRIGHTNESS</span>
+              <span className="text-[4.5px] font-bold text-[#aaa]">{brightness}%</span>
             </div>
             <div className="flex gap-[1px]">
               {Array.from({ length: 10 }).map((_, i) => (
@@ -186,8 +226,9 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
                   key={i}
                   className="flex-1 h-[5px] rounded-[0.5px] transition-all"
                   style={{
-                    background: i < briBars ? "#fcd34d" : "rgba(0,0,0,0.5)",
-                    border: `0.5px solid ${i < briBars ? "#eab308" : "rgba(255,255,255,0.05)"}`,
+                    background: i < briBars ? "#ff8c00" : "rgba(0,0,0,0.5)",
+                    border: `0.5px solid ${i < briBars ? "rgba(255,140,0,0.8)" : "rgba(255,255,255,0.05)"}`,
+                    boxShadow: i < briBars ? "0 0 2px rgba(255,140,0,0.4)" : "none",
                   }}
                 />
               ))}
@@ -195,10 +236,12 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
           </div>
 
           {/* ═══ THEME ═══ */}
-          <div className={`flex flex-col gap-[3px] p-[5px] border rounded-[2px] transition-colors ${activeIndex === 3 ? "bg-[rgba(255,140,0,0.15)] border-[var(--orange)]" : "bg-[rgba(6,12,26,0.8)] border-[var(--border)]"}`}>
+          <div 
+            data-active={activeIndex === 4}
+            className={`flex flex-col gap-[3px] p-[5px] rounded-[2px] transition-colors ${activeIndex === 4 ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}>
             <div className="flex justify-between items-center">
-              <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 3 ? "text-[var(--orange)]" : "text-[var(--dim)]"}`}>THEME</span>
-              <span className="text-[5px] font-bold text-[var(--gold)]">{THEMES[theme]?.name || "VINTAGE"}</span>
+              <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 4 ? "text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.8)]" : "text-[#888]"}`}>THEME</span>
+              <span className="text-[4.5px] font-bold text-[#ff8c00]">{THEMES[theme]?.name || "VINTAGE"}</span>
             </div>
             <div className="flex gap-[4px] mt-[1px]">
               {THEMES.map((t, i) => (
@@ -207,32 +250,34 @@ export default function SettingsScreen({ onAction }: SettingsScreenProps) {
                   className="flex flex-col items-center gap-[1px]"
                 >
                   <div
-                    className={`w-[8px] h-[8px] rounded-[1px] border-[1px] transition-all ${theme === i ? "border-[var(--orange)] scale-110" : "border-white/20 opacity-50"}`}
+                    className={`w-[8px] h-[8px] rounded-[1px] border-[1px] transition-all ${theme === i ? "border-[#ff8c00] scale-110 shadow-[0_0_3px_rgba(255,140,0,0.5)]" : "border-white/10 opacity-30"}`}
                     style={{ backgroundColor: t.color }}
                   />
                   {theme === i && (
-                    <div className="w-[2px] h-[1px] bg-[var(--orange)] rounded-full" />
+                    <div className="w-[2px] h-[1px] bg-[#ff8c00] rounded-full" />
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* ═══ RESET SCORES ═══ */}
-          <div className={`flex items-center justify-between p-[5px] border rounded-[2px] transition-colors ${activeIndex === 4 ? "bg-[rgba(239,68,68,0.12)] border-[#ef4444]" : "bg-[rgba(6,12,26,0.8)] border-[var(--border)]"}`}>
-            <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 4 ? "text-[#ef4444]" : "text-[var(--dim)]"}`}>RESET SCORES</span>
-            <span className={`text-[4px] font-bold ${resetFeedback ? "text-[#22c55e]" : activeIndex === 4 ? "text-[#ef4444]" : "text-[var(--dim)]"}`}>
-              {resetFeedback ? "CLEARED!" : activeIndex === 4 ? "PRESS A" : ""}
+          {/* RESET SCORES is now Index 5 */}
+          <div 
+            data-active={activeIndex === 5}
+            className={`flex items-center justify-between p-[5px] rounded-[2px] transition-colors ${activeIndex === 5 ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}>
+            <span className={`text-[5px] font-bold tracking-wide ${activeIndex === 5 ? "text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.8)]" : "text-[#888]"}`}>RESET SCORES</span>
+            <span className={`text-[4.5px] font-bold ${resetFeedback ? "text-[#22c55e] drop-shadow-[0_0_2px_rgba(34,197,94,0.8)]" : activeIndex === 5 ? "text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.8)]" : "text-[#555]"}`}>
+              {resetFeedback ? "CLEARED!" : activeIndex === 5 ? "PRESS A" : ""}
             </span>
           </div>
 
-          {/* System Info */}
-          <div className="flex justify-center items-center">
-            <p className="text-[3px] text-[var(--dim)] text-center font-bold tracking-widest uppercase leading-normal">
-              SYS v1.0.5
-            </p>
-          </div>
+        </div>
 
+        {/* System Footer - Inside main area scroll bit */}
+        <div className="flex justify-center items-center py-[4px] mt-[10px] pb-[10px]">
+          <p className="text-[3px] text-[#444] text-center font-bold tracking-widest uppercase leading-normal">
+            SYSTEM BUILD: 2026.03.29.REL.v1.0.6
+          </p>
         </div>
       </div>
     </OSLayout>

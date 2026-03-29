@@ -1,13 +1,42 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import OSLayout from "./components/OSLayout";
+import { useGameBoySound } from "../hooks/useGameBoySound";
 
 export default function StatsScreen() {
+  const { play } = useGameBoySound();
   const [snakeScore, setSnakeScore] = useState(0);
   const [snakeLen, setSnakeLen] = useState(0);
   const [tetrisScore, setTetrisScore] = useState(0);
   const [tetrisLines, setTetrisLines] = useState(0);
   const [tetrisLevel, setTetrisLevel] = useState(0);
   const [totalPlays, setTotalPlays] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0); // 0: Snake, 1: Tetris, 2: Mario
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleInput = useCallback((type: string) => {
+    if (type === "UP") {
+      setActiveIndex((prev) => (prev <= 0 ? 2 : prev - 1));
+      play("MOVE");
+    } else if (type === "DOWN") {
+      setActiveIndex((prev) => (prev >= 2 ? 0 : prev + 1));
+      play("MOVE");
+    }
+  }, [play]);
+
+  useEffect(() => {
+    (window as any).__gameInput = handleInput;
+    return () => {
+      delete (window as any).__gameInput;
+    };
+  }, [handleInput]);
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const activeEl = scrollRef.current.querySelector('[data-active="true"]');
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [activeIndex]);
 
   useEffect(() => {
     setSnakeScore(parseInt(localStorage.getItem("snake_high_score") || "0", 10));
@@ -25,16 +54,10 @@ export default function StatsScreen() {
   return (
     <OSLayout
       customHints={
-        <>
-          <div className="vintage-hint" style={{ marginRight: "2px" }}>
-            <span className="vintage-hk">B</span>
-            <span className="vintage-ha">BACK</span>
-          </div>
-          <div className="vintage-hint">
-            <span className="vintage-hk">SEL</span>
-            <span className="vintage-ha">EXIT</span>
-          </div>
-        </>
+        <div className="vintage-hint">
+          <span className="vintage-hk">SEL</span>
+          <span className="vintage-ha">EXIT</span>
+        </div>
       }
     >
       {/* Header */}
@@ -43,107 +66,86 @@ export default function StatsScreen() {
         <span className="vintage-title-tag">RECORDS</span>
       </div>
 
-      {/* Content - Full height distribution */}
-      <div className="vintage-main-area" style={{ flexDirection: "column", padding: "3px 4px", justifyContent: "space-between" }}>
+      {/* Content Area */}
+      <div 
+        ref={scrollRef}
+        className="vintage-main-area flex-col p-2 gap-2 overflow-y-auto scrollbar-hide scroll-smooth"
+      >
+        <div className="flex flex-col gap-[4px] w-full pb-[20px]">
+          
+          {/* Total Stats Banner */}
+          <div className="flex flex-shrink-0 items-center justify-between px-2 py-1.5 rounded-[2px] bg-[rgba(0,0,0,0.6)] border border-[rgba(255,255,255,0.05)] shadow-sm">
+            <span className="text-[4px] font-bold tracking-widest text-[#888] leading-tight">GLOBAL USAGE</span>
+            <span className="text-[6.5px] font-black text-[#ff8c00] drop-shadow-[0_0_2px_rgba(255,140,0,0.4)]">{totalPlays} GAMES</span>
+          </div>
 
-        {/* ═══ TOTAL PLAYS BAR ═══ */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "6px",
-          padding: "3px 0",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "3px",
-        }}>
-          <span style={{ fontSize: "4px", color: "var(--dim)", letterSpacing: "1px", fontWeight: "bold" }}>TOTAL GAMES</span>
-          <span style={{ fontSize: "7px", color: "var(--gold)", fontWeight: 900 }}>{totalPlays}</span>
-        </div>
-
-        {/* ═══ SNAKE CARD ═══ */}
-        <div style={{
-          display: "flex",
-          gap: "4px",
-          padding: "4px",
-          background: "rgba(6,12,26,0.8)",
-          border: "1px solid var(--border)",
-          borderRadius: "2px",
-          boxShadow: "inset 0 0 8px rgba(0,212,255,0.06)",
-        }}>
-          <img
-            src="/images/covers/snake_2-removebg-preview.png"
-            alt="SNAKE"
-            style={{ width: "22px", height: "22px", borderRadius: "2px", objectFit: "cover", imageRendering: "pixelated", border: "0.5px solid var(--dim)", flexShrink: 0 }}
-          />
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "1px", justifyContent: "center" }}>
-            <span style={{ fontSize: "5px", fontWeight: 900, color: "var(--text)", letterSpacing: "1px", lineHeight: 1 }}>SNAKE</span>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1px" }}>
-              <span style={{ fontSize: "4px", color: "var(--dim)", fontWeight: "bold" }}>HI-SCORE</span>
-              <span style={{ fontSize: "4.5px", color: "var(--gold)", fontWeight: "bold" }}>{String(snakeScore).padStart(5, "0")}</span>
+          {/* Snake Card */}
+          <div 
+            data-active={activeIndex === 0}
+            className={`flex flex-shrink-0 gap-2 p-2 rounded-[2px] border transition-all ${activeIndex === 0 ? "bg-[rgba(255,140,0,0.15)] border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}
+          >
+            <div className="w-[24px] h-[24px] border border-[rgba(255,255,255,0.05)] flex-shrink-0 bg-[#0a0a0a] rounded-[1px]">
+              <img src="/images/covers/snake_2-removebg-preview.png" alt="SNAKE" className="w-full h-full object-contain pixelated" />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "4px", color: "var(--dim)", fontWeight: "bold" }}>MAX LEN</span>
-              <span style={{ fontSize: "4.5px", color: "#00d4ff", fontWeight: "bold" }}>{snakeLen}</span>
+            <div className="flex flex-col flex-1 justify-center gap-[2px]">
+              <span className={`text-[6px] font-black tracking-wider ${activeIndex === 0 ? "text-white" : "text-[#aaa]"}`}>SNAKE</span>
+              <div className="flex justify-between items-center opacity-80">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">SCORE</span>
+                <span className="text-[5px] font-medium text-[#ffd700]">{String(snakeScore).padStart(5, "0")}</span>
+              </div>
+              <div className="flex justify-between items-center opacity-80">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">LENGTH</span>
+                <span className="text-[5px] font-medium text-[#00d4ff]">{snakeLen}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tetris Card */}
+          <div 
+            data-active={activeIndex === 1}
+            className={`flex flex-shrink-0 gap-2 p-2 rounded-[2px] border transition-all ${activeIndex === 1 ? "bg-[rgba(255,140,0,0.15)] border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}
+          >
+            <div className="w-[24px] h-[24px] border border-[rgba(255,255,255,0.05)] flex-shrink-0 bg-[#0a0a0a] rounded-[1px]">
+              <img src="/images/covers/tetris-removebg-preview.png" alt="TETRIS" className="w-full h-full object-contain pixelated" />
+            </div>
+            <div className="flex flex-col flex-1 justify-center gap-[1px]">
+              <span className={`text-[6px] font-black tracking-wider ${activeIndex === 1 ? "text-white" : "text-[#aaa]"}`}>TETRIS</span>
+              <div className="flex justify-between items-center opacity-80 mt-[1px]">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">HI-SCORE</span>
+                <span className="text-[5px] font-medium text-[#ffd700]">{String(tetrisScore).padStart(6, "0")}</span>
+              </div>
+              <div className="flex justify-between items-center opacity-80">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">LINES</span>
+                <span className="text-[5px] font-medium text-[#22c55e]">{tetrisLines}</span>
+              </div>
+              <div className="flex justify-between items-center opacity-80">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">LEVEL</span>
+                <span className="text-[5px] font-medium text-[#a855f7]">{tetrisLevel}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mario Card */}
+          <div 
+            data-active={activeIndex === 2}
+            className={`flex flex-shrink-0 gap-2 p-2 rounded-[2px] border transition-all ${activeIndex === 2 ? "bg-[rgba(255,140,0,0.15)] border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}
+          >
+            <div className="w-[24px] h-[24px] border border-[rgba(255,255,255,0.05)] flex-shrink-0 bg-[#0a0a0a] rounded-[1px]">
+              <img src="/images/covers/Mario_1-removebg-preview.png" alt="MARIO" className="w-full h-full object-contain pixelated" />
+            </div>
+            <div className="flex flex-col flex-1 justify-center gap-[2px]">
+              <span className={`text-[6px] font-black tracking-wider ${activeIndex === 2 ? "text-white" : "text-[#aaa]"}`}>MARIO</span>
+              <div className="flex justify-between items-center opacity-80">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">STAGES</span>
+                <span className="text-[5px] font-medium text-[#ffd700]">1-1 Clear</span>
+              </div>
+              <div className="flex justify-between items-center opacity-80">
+                <span className="text-[4px] font-bold text-[#666] leading-tight">COINS</span>
+                <span className="text-[5px] font-medium text-[#fbbf24]">000</span>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* ═══ TETRIS CARD ═══ */}
-        <div style={{
-          display: "flex",
-          gap: "4px",
-          padding: "4px",
-          background: "rgba(6,12,26,0.8)",
-          border: "1px solid var(--border)",
-          borderRadius: "2px",
-          boxShadow: "inset 0 0 8px rgba(204,68,255,0.06)",
-        }}>
-          <img
-            src="/images/covers/tetris-removebg-preview.png"
-            alt="TETRIS"
-            style={{ width: "22px", height: "22px", borderRadius: "2px", objectFit: "cover", imageRendering: "pixelated", border: "0.5px solid var(--dim)", flexShrink: 0 }}
-          />
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "1px", justifyContent: "center" }}>
-            <span style={{ fontSize: "5px", fontWeight: 900, color: "var(--text)", letterSpacing: "1px", lineHeight: 1 }}>TETRIS</span>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1px" }}>
-              <span style={{ fontSize: "4px", color: "var(--dim)", fontWeight: "bold" }}>HI-SCORE</span>
-              <span style={{ fontSize: "4.5px", color: "var(--gold)", fontWeight: "bold" }}>{String(tetrisScore).padStart(6, "0")}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "4px", color: "var(--dim)", fontWeight: "bold" }}>LINES</span>
-              <span style={{ fontSize: "4.5px", color: "#22c55e", fontWeight: "bold" }}>{tetrisLines}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "4px", color: "var(--dim)", fontWeight: "bold" }}>MAX LV</span>
-              <span style={{ fontSize: "4.5px", color: "#a855f7", fontWeight: "bold" }}>{tetrisLevel}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ═══ MARIO CARD ═══ */}
-        <div style={{
-          display: "flex",
-          gap: "4px",
-          padding: "4px",
-          background: "rgba(6,12,26,0.8)",
-          border: "1px solid var(--border)",
-          borderRadius: "2px",
-          boxShadow: "inset 0 0 8px rgba(255,140,0,0.06)",
-        }}>
-          <img
-            src="/images/covers/Mario_1-removebg-preview.png"
-            alt="MARIO"
-            style={{ width: "22px", height: "22px", borderRadius: "2px", objectFit: "cover", imageRendering: "pixelated", border: "0.5px solid var(--dim)", flexShrink: 0 }}
-          />
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "1px", justifyContent: "center" }}>
-            <span style={{ fontSize: "5px", fontWeight: 900, color: "var(--text)", letterSpacing: "1px", lineHeight: 1 }}>MARIO</span>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1px" }}>
-              <span style={{ fontSize: "4px", color: "var(--dim)", fontWeight: "bold" }}>RECORD</span>
-              <span style={{ fontSize: "4.5px", color: "var(--gold)", fontWeight: "bold" }}>1-1 CLEAR</span>
-            </div>
-          </div>
-        </div>
-
       </div>
     </OSLayout>
   );

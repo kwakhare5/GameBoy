@@ -14,6 +14,8 @@ export default function NESEmulator() {
   const nesRef = useRef<any>(null);
   const frameRef = useRef<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
 
   // Create NES, load ROM, start loop
   useEffect(() => {
@@ -92,6 +94,17 @@ export default function NESEmulator() {
     if (!nes) return;
 
     const btn = BTN[type];
+    
+    // Toggle system pause on START button
+    if (type === "START" && isDown) {
+      if (!gameStarted) {
+        setGameStarted(true);
+        // Do NOT setPaused(true) on the very first start
+      } else {
+        setPaused(p => !p);
+      }
+    }
+
     if (btn === undefined) return;
 
     if (isDown) {
@@ -99,11 +112,11 @@ export default function NESEmulator() {
     } else {
       nes.buttonUp(1, btn);
     }
-  }, []);
+  }, [gameStarted]);
 
   // Expose to window + keyboard support with GameBoy controller bindings
   useEffect(() => {
-    (window as any).__nesInput = handleInput;
+    (window as any).__gameInput = handleInput;
 
     const held = new Set<string>();
 
@@ -154,7 +167,7 @@ export default function NESEmulator() {
     window.addEventListener("keyup", onUp);
 
     return () => {
-      delete (window as any).__nesInput;
+      delete (window as any).__gameInput;
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
@@ -162,13 +175,13 @@ export default function NESEmulator() {
 
   const nesHints = (
     <>
-      <div className="vintage-hint" style={{ marginRight: "2px" }}>
-        <span className="vintage-hk">A/B</span>
-        <span className="vintage-ha">JMP/RUN</span>
+      <div className="vintage-hint" style={{ marginRight: "4px" }}>
+        <span className="vintage-hk">A</span>
+        <span className="vintage-ha">JUMP</span>
       </div>
-      <div className="vintage-hint" style={{ marginRight: "2px" }}>
+      <div className="vintage-hint" style={{ marginRight: "4px" }}>
         <span className="vintage-hk">START</span>
-        <span className="vintage-ha">PLAY</span>
+        <span className="vintage-ha">PAUSE</span>
       </div>
       <div className="vintage-hint">
         <span className="vintage-hk">SEL</span>
@@ -195,6 +208,17 @@ export default function NESEmulator() {
           className="max-w-full max-h-full object-contain shadow-2xl"
           style={{ imageRendering: "pixelated" }}
         />
+      )}
+
+      {/* PAUSE OVERLAY */}
+      {paused && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-[rgba(6,12,26,0.5)]">
+          <div className="flex flex-col items-center gap-2 p-3 bg-[rgba(4,8,20,0.96)] border border-[#ff8c00] rounded-sm min-w-[70px] shadow-[0_0_15px_rgba(0,0,0,1)]">
+            <div className="text-[7px] text-[#ff8c00] font-black tracking-widest drop-shadow-[0_0_2px_rgba(255,140,0,0.5)]">PAUSE</div>
+            <div className="w-full h-px bg-[#1a3060]" />
+            <div className="text-[4px] text-[#c8e0ff] animate-pulse tracking-wide">▶ PRESS START</div>
+          </div>
+        </div>
       )}
       </div>
     </OSLayout>

@@ -97,13 +97,19 @@ export default function App() {
         setSelectedMenuItem(selectedMenuItem >= 4 ? 0 : selectedMenuItem + 1);
       } else if (baseType === "A" || baseType === "START") {
         play("CONFIRM");
-        const screens: Array<"PLAYING_SNAKE" | "PLAYING_TETRIS" | "PLAYING_MARIO" | "VIEWING_STATS" | "VIEWING_SETTINGS"> = 
-          ["PLAYING_SNAKE", "PLAYING_TETRIS", "PLAYING_MARIO", "VIEWING_STATS", "VIEWING_SETTINGS"];
+        const screens: Array<"PLAYING_MARIO" | "PLAYING_SNAKE" | "PLAYING_TETRIS" | "VIEWING_STATS" | "VIEWING_SETTINGS"> = 
+          ["PLAYING_MARIO", "PLAYING_SNAKE", "PLAYING_TETRIS", "VIEWING_STATS", "VIEWING_SETTINGS"];
         
         const targetScreen = screens[selectedMenuItem];
         
         // Only run boot sequence for games, not OS menus (settings/stats)
         if (targetScreen.startsWith("PLAYING_")) {
+          // Increment play counts
+          const gameId = targetScreen === "PLAYING_MARIO" ? "mario" : 
+                         targetScreen === "PLAYING_SNAKE" ? "snake" : "tetris";
+          const currentPlays = parseInt(localStorage.getItem(`${gameId}_plays`) || "0", 10);
+          localStorage.setItem(`${gameId}_plays`, (currentPlays + 1).toString());
+
           setCartridgeBooting(true);
           setTimeout(() => {
             navigateTo(targetScreen);
@@ -116,63 +122,21 @@ export default function App() {
       return;
     }
 
-    if (currentScreen === "PLAYING_SNAKE") {
-      if (isRelease) return;
-      if (baseType === "SELECT") {
+    if (currentScreen.startsWith("PLAYING_") || currentScreen.startsWith("VIEWING_")) {
+      if (!isRelease && baseType === "SELECT") {
         play("BACK");
         navigateTo("MAIN_MENU");
         return;
       }
-      const snakeInput = (window as any).__snakeInput;
-      if (snakeInput) snakeInput(baseType);
-      return;
-    }
-
-    if (currentScreen === "PLAYING_TETRIS") {
-      if (isRelease) return;
-      if (baseType === "SELECT") {
-        play("BACK");
-        navigateTo("MAIN_MENU");
-        return;
+      const gameInput = (window as any).__gameInput;
+      if (gameInput) {
+        // Special case for Mario/NES emulator which needs press/release state
+        if (currentScreen === "PLAYING_MARIO") {
+          gameInput(baseType, !isRelease);
+        } else if (!isRelease) {
+          gameInput(baseType);
+        }
       }
-      const tetrisInput = (window as any).__tetrisInput;
-      if (tetrisInput) tetrisInput(baseType);
-      return;
-    }
-
-    if (currentScreen === "PLAYING_MARIO") {
-      if (baseType === "SELECT" && !isRelease) {
-        play("BACK");
-        navigateTo("MAIN_MENU");
-        return;
-      }
-      const nesInput = (window as any).__nesInput;
-      if (nesInput && ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START"].includes(baseType)) {
-        nesInput(baseType, !isRelease);
-      }
-      return;
-    }
-
-    if (currentScreen === "VIEWING_STATS") {
-      if (isRelease) return;
-      if (baseType === "B" || baseType === "SELECT" || baseType === "QUIT_GAME") {
-        play("BACK");
-        navigateTo("MAIN_MENU");
-        return;
-      }
-      return;
-    }
-
-    if (currentScreen === "VIEWING_SETTINGS") {
-      if (isRelease) return;
-      if (baseType === "B" || baseType === "QUIT_GAME") {
-        play("BACK");
-        navigateTo("MAIN_MENU");
-        return;
-      }
-
-      const settingsInput = (window as any).__settingsInput;
-      if (settingsInput) settingsInput(baseType);
       return;
     }
 
@@ -196,6 +160,54 @@ export default function App() {
       return;
     }
   }, [currentScreen, selectedMenuItem, powerOption, initAudio, play, powerOn, powerOff, navigateTo, setSelectedMenuItem, setPowerOption, isCartridgeBooting, setCartridgeBooting, activeOSModal, setOSModal]);
+
+  // Global Keyboard Event Listener for OS Navigation
+  useEffect(() => {
+    // Only capture keyboard if we're not in a game (games handle their own keyboard via __gameInput OR their own listeners)
+    // Wait, Snake/Tetris/Mario all have their own keydown listeners OR we pass them via __gameInput.
+    // So for MAIN_MENU and OS screens, we need our own keyboard hook to dispatch to handleAction.
+    const isOSScreen = currentScreen === "MAIN_MENU" || currentScreen === "POWER_CONFIRM" || currentScreen === "VIEWING_STATS" || currentScreen === "VIEWING_SETTINGS" || activeOSModal !== null || currentScreen === "OFF";
+
+    const keyMap: Record<string, string> = {
+      ArrowUp: "UP",
+      ArrowDown: "DOWN",
+      ArrowLeft: "LEFT",
+      ArrowRight: "RIGHT",
+      KeyZ: "A",
+      KeyX: "B",
+      Enter: "START",
+      ShiftLeft: "SELECT",
+      ShiftRight: "SELECT",
+      Escape: "MENU"
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Always prevent default scrolling for gameboy controls on OS screens
+      if (isOSScreen && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.code)) {
+        e.preventDefault();
+      }
+      
+      const action = keyMap[e.code];
+      if (action && isOSScreen) {
+        handleAction(action);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const action = keyMap[e.code];
+      if (action && isOSScreen) {
+        handleAction(`${action}_RELEASE`);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [currentScreen, activeOSModal, handleAction]);
 
   return (
     <div

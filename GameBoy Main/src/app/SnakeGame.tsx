@@ -22,7 +22,7 @@ const FOOD2_C = "#ffd700", FOOD2_HI = "#fff099";
 const BG = "#060c1a", GRID = "rgba(0,180,50,0.05)", BORDER = "#0d3010";
 
 // ═══ LEVELS ═══
-const LEVEL_SPEEDS = [220, 190, 165, 140, 120, 100, 85, 72, 60, 50];
+const LEVEL_SPEEDS = [150, 130, 115, 100, 90, 80, 70, 60, 50, 45];
 const LEVEL_THRESHOLDS = [0, 5, 10, 16, 23, 31, 40, 50, 62, 75];
 
 function getLevel(score: number) {
@@ -312,7 +312,7 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
   }, []);
 
   const init = useCallback((ai = false) => {
-    const snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+    const snake = [{ x: 3, y: 8 }, { x: 2, y: 8 }, { x: 1, y: 8 }];
     const food = spawnFood(snake);
     gs.current = {
       snake, food,
@@ -435,64 +435,81 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
     // D-PAD: Arrow keys
     // A: Z (Start/Confirm)
     // B: X (Pause/Back)
-    // X: A (Boost speed)
-    // Y: S (Boost speed)
-    // START: Enter (Start game/Quit)
-    // SELECT: Shift (Toggle AI)
-    function onKey(e: KeyboardEvent) {
+    function handleInput(action: string) {
       const g = gs.current;
       const phase = g?.phase ?? ui.phase;
 
-      // SELECT button - toggle AI
-      if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+      if (action === "SELECT") {
         if (g && (phase === "playing" || phase === "start")) { g.ai = !g.ai; setUI(u => ({ ...u, ai: g.ai })); return; }
       }
-
-      // START button - start/restart game or quit
-      if (e.code === "Enter") {
+      
+      if (action === "START" || action === "A") {
         if (phase === "start" || phase === "gameover") { init(false); return; }
-        if (phase === "paused") { g.phase = "playing"; setUI(u => ({ ...u, phase: g.phase })); return; }
+        if (phase === "paused") { if (g) g.phase = "playing"; setUI(u => ({ ...u, phase: "playing" })); return; }
       }
-
-      // B button (X key) - pause/back
-      if (e.code === "KeyX") {
-        if (g && phase !== "gameover") {
+      
+      if (action === "B") {
+        if (g && phase !== "gameover" && phase !== "start") {
           g.phase = g.phase === "paused" ? "playing" : "paused";
           setUI(u => ({ ...u, phase: g.phase })); return;
         }
       }
 
-      // X/Y buttons (A/S keys) - boost speed
-      if (e.code === "KeyA" || e.code === "KeyS") {
+      // X/Y buttons (A/S keys) mappings were previously mapped. We'll map them via generic actions if possible, 
+      // but standard GameBoy logic for boost:
+      if (action === "X" || action === "Y") {
         if (g && phase === "playing") {
           g.moveInterval = Math.max(30, LEVEL_SPEEDS[Math.min(9, g.level + 2)]);
           return;
         }
       }
-
-      const KEY_DIR_MAP: Record<string, { x: number; y: number }> = {
-        ArrowUp: DIR.UP, KeyW: DIR.UP,
-        ArrowDown: DIR.DOWN, KeyS: DIR.DOWN,
-        ArrowLeft: DIR.LEFT, KeyA: DIR.LEFT,
-        ArrowRight: DIR.RIGHT, KeyD: DIR.RIGHT,
+      
+      const DIR_STR_MAP: Record<string, {x:number, y:number}> = {
+        UP: DIR.UP, DOWN: DIR.DOWN, LEFT: DIR.LEFT, RIGHT: DIR.RIGHT
       };
-      const d = KEY_DIR_MAP[e.code];
+      const d = DIR_STR_MAP[action];
       if (d) {
-        e.preventDefault();
-        // Determine current effective direction based on tail of input queue
-        const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
-        const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
-        const oppKey = OPPOSITE[dirKey];
-        const dKey = Object.keys(DIR).find(k => DIR[k] === d);
+        if (g && phase === "start") {
+           // Should not happen anymore, but just in case
+           g.phase = "playing"; setUI(u => ({ ...u, phase: "playing" }));
+        }
         
-        // Prevent 180-degree self-collisions and cap queue at 3 to prevent huge backlogs
-        if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
-          g.inputQueue.push(d);
+        if (g && g.phase === "playing") {
+          const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
+          const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
+          const oppKey = OPPOSITE[dirKey];
+          const dKey = Object.keys(DIR).find(k => DIR[k] === d);
+          
+          if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
+            g.inputQueue.push(d);
+          }
         }
       }
     }
+    
+    function onKey(e: KeyboardEvent) {
+      const KEY_TO_ACTION: Record<string, string> = {
+        ArrowUp: "UP", KeyW: "UP",
+        ArrowDown: "DOWN", KeyS: "DOWN",
+        ArrowLeft: "LEFT", KeyA: "LEFT",
+        ArrowRight: "RIGHT", KeyD: "RIGHT",
+        Enter: "START", KeyZ: "A",
+        KeyX: "B",
+        ShiftLeft: "SELECT", ShiftRight: "SELECT"
+      };
+      const action = KEY_TO_ACTION[e.code];
+      if (action) {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.code)) e.preventDefault();
+        handleInput(action);
+      }
+    }
+    
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    (window as any).__gameInput = handleInput;
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      delete (window as any).__gameInput;
+    };
   }, [init, ui.phase]);
 
   const touch = useRef<any>({});
@@ -520,23 +537,27 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
   };
 
   useEffect(() => {
-    (window as any).__snakeInput = (type: string) => {
+    (window as any).__gameInput = (type: string) => {
       const g = gs.current;
       if (!g) return;
-      
-      // START/GAMEOVER screens: only START starts game
-      if (g.phase === "start" || g.phase === "gameover") {
+      const phase = g.phase;
+
+      if (phase === "start") {
         if (type === "START") init(false);
         return;
       }
-      
-      // START pauses/unpauses
+
+      if (phase === "gameover") {
+        if (type === "START") init(false);
+        return;
+      }
+
       if (type === "START") {
         g.phase = g.phase === "paused" ? "playing" : "paused";
         setUI(u => ({ ...u, phase: g.phase }));
         return;
       }
-      
+
       // Y toggles AI mode
       if (type === "Y") {
         g.ai = !g.ai;

@@ -36,43 +36,52 @@ interface GameBoyState {
   setPowerOption: (option: 'YES' | 'NO') => void;
 }
 
-export const useGameBoyStore = create<GameBoyState>((set) => ({
-  // Initial state
-  isPowered: true,
-  isBooting: false,
-  bootStep: 0,
-  currentScreen: 'MAIN_MENU',
-  selectedMenuItem: 0,
-  soundEnabled: true,
-  volume: 80,
-  brightness: 100,
-  theme: 2, // 0: NEON RED, 1: EMERALD, 2: VINTAGE OS, 3: COBALT
-  powerOption: 'NO',
-  isCartridgeBooting: false,
-  activeOSModal: null,
+export const useGameBoyStore = create<GameBoyState>((set) => {
+  const isBrowser = typeof window !== 'undefined';
   
-  // Actions
-  powerOn: () => {
-    set({ isPowered: true, isBooting: true, bootStep: 1, currentScreen: 'BOOTING' });
-    setTimeout(() => set({ bootStep: 2 }), 1500);
-    setTimeout(() => set({ isBooting: false, bootStep: 0, currentScreen: 'MAIN_MENU' }), 3500);
-  },
+  return {
+    // Initial state
+    isPowered: true,
+    isBooting: false,
+    bootStep: 0,
+    currentScreen: 'MAIN_MENU',
+    selectedMenuItem: 0,
+    soundEnabled: isBrowser ? localStorage.getItem('gb_soundEnabled') !== 'false' : true,
+    volume: isBrowser ? parseInt(localStorage.getItem('gb_volume') || '80', 10) : 80,
+    brightness: isBrowser ? parseInt(localStorage.getItem('gb_brightness') || '100', 10) : 100,
+    theme: isBrowser ? parseInt(localStorage.getItem('gb_theme') || '2', 10) : 2, // 0: NEON RED, 1: EMERALD, 2: VINTAGE OS, 3: COBALT
+    powerOption: 'NO',
+    isCartridgeBooting: false,
+    activeOSModal: null,
+    
+    // Actions
+    powerOn: () => {
+      set({ isPowered: true, isBooting: true, bootStep: 1, currentScreen: 'BOOTING' });
+      setTimeout(() => set({ bootStep: 2 }), 1500);
+      setTimeout(() => set({ isBooting: false, bootStep: 0, currentScreen: 'MAIN_MENU' }), 3500);
+    },
 
-  powerOff: () => {
-    set({ isPowered: false, currentScreen: 'OFF' });
-  },
-  
-  navigateTo: (screen) => set({ currentScreen: screen }),
-  
-  setCartridgeBooting: (isBooting) => set({ isCartridgeBooting: isBooting }),
-  setOSModal: (message) => set({ activeOSModal: message }),
+    powerOff: () => {
+      set({ isPowered: false, currentScreen: 'OFF' });
+    },
+    
+    navigateTo: (screen) => set({ currentScreen: screen }),
+    
+    setCartridgeBooting: (isBooting) => set({ isCartridgeBooting: isBooting }),
+    setOSModal: (message) => set({ activeOSModal: message }),
 
-  setSelectedMenuItem: (index) => set({ selectedMenuItem: index }),
-  
-  setSetting: (key, value) => set({ [key]: value }),
-  
-  setPowerOption: (option) => set({ powerOption: option }),
-}));
+    setSelectedMenuItem: (index) => set({ selectedMenuItem: index }),
+    
+    setSetting: (key, value) => {
+      set({ [key]: value });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`gb_${key}`, String(value));
+      }
+    },
+    
+    setPowerOption: (option) => set({ powerOption: option }),
+  };
+});
 
 // High score store
 interface HighScoreState {

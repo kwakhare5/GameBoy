@@ -214,7 +214,7 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
       flashRows: [], flashT: 0, flashing: false,
       phase: "playing",
       ai: false, aiCalculated: false,
-      aiMoveTimer: 0, aiMoveInterval: 50,
+      aiMoveTimer: 0, aiMoveInterval: 200,
     };
     setUI(u => ({ ...u, score: 0, lines: 0, level: 0, nextType: n.type, phase: "playing", ai: false }));
   }, []);
@@ -439,7 +439,7 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
   }, [init, afterLock, ui.phase]);
 
   useEffect(() => {
-    (window as any).__tetrisInput = (type: string) => {
+    (window as any).__gameInput = (type: string) => {
       const g = gs.current;
       if (!g) return;
       const phase = g.phase;
@@ -475,7 +475,7 @@ export default function TetrisGame({ onAction }: TetrisGameProps) {
       if (type === "DOWN") g.inputQueue.push("DOWN");
       if (type === "A" || type === "UP") g.inputQueue.push("ROTATE_CW");
     };
-    return () => { delete (window as any).__tetrisInput; };
+    return () => { delete (window as any).__gameInput; };
   }, [init, afterLock, onAction]);
 
   const spd = Math.min(9, ui.level);

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "../../styles/VintageOS.css";
 import { useGameBoyStore } from "../../stores/gameBoyStore";
 
 interface OSLayoutProps {
@@ -20,7 +19,7 @@ const THEMES = [
 
 export default function OSLayout({ children, customHints }: OSLayoutProps) {
   const [time, setTime] = useState("");
-  const { isCartridgeBooting, activeOSModal } = useGameBoyStore();
+  const { isCartridgeBooting, activeOSModal, brightness, theme: themeIdx } = useGameBoyStore();
 
   useEffect(() => {
     const tick = () => {
@@ -38,26 +37,6 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const [brightness, setBrightness] = useState(() =>
-    parseInt(localStorage.getItem("gb_brightness") || "100", 10)
-  );
-  const [themeIdx, setThemeIdx] = useState(() =>
-    parseInt(localStorage.getItem("gb_theme") || "2", 10)
-  );
-
-  useEffect(() => {
-    const handleStorage = () => {
-      setBrightness(parseInt(localStorage.getItem("gb_brightness") || "100", 10));
-      setThemeIdx(parseInt(localStorage.getItem("gb_theme") || "2", 10));
-    };
-    window.addEventListener("storage", handleStorage);
-    const interval = setInterval(handleStorage, 500);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
-    };
-  }, []);
-
   const t = THEMES[themeIdx] || THEMES[2];
   const themeVars: React.CSSProperties = {
     "--bg": t.bg,
@@ -68,14 +47,40 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
     "--border": t.border,
   } as React.CSSProperties;
 
+  const [bootAnim, setBootAnim] = useState(true);
+  const [isScreensaver, setIsScreensaver] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBootAnim(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const reset = () => {
+      setIsScreensaver(false);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setIsScreensaver(true), 60000);
+    };
+    window.addEventListener("pointerdown", reset);
+    window.addEventListener("keydown", reset);
+    reset();
+    return () => {
+      window.removeEventListener("pointerdown", reset);
+      window.removeEventListener("keydown", reset);
+      clearTimeout(timeout);
+    };
+  }, []);
+
   const brightnessOverlayOpacity = 1 - (brightness / 100);
 
   return (
-    <div className="vintage-ui" style={{ ...themeVars, width: "182px", height: "158px", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative" }}>
+    <div className={`vintage-ui ${bootAnim ? "tv-turn-on" : ""}`} style={{ ...themeVars, width: "182px", height: "158px", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative", filter: "contrast(1.05) brightness(1.1)" }}>
       {/* Backgrounds */}
       <div className="vintage-screen-bg" />
       <div className="vintage-screen-glow" />
       <div className="vintage-scanlines" />
+      <div className="vintage-noise" />
       <div className="vintage-glare" />
 
       {/* Brightness Overlay */}
@@ -95,7 +100,7 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
             <div className="vintage-bat-s e"></div>
             <div className="vintage-bat-c"></div>
           </div>
-          <span className="vintage-bat-n">92%</span>
+          <span className="vintage-bat-n mr-[4px]">92%</span>
           <div className="vintage-hud-time">{time || "--:--"}</div>
         </div>
       </div>
@@ -161,6 +166,24 @@ export default function OSLayout({ children, customHints }: OSLayoutProps) {
           </>
         )}
       </div>
+
+      {/* SCREENSAVER OVERLAY */}
+      {isScreensaver && !activeOSModal && (
+        <div className="absolute inset-0 z-[1001] bg-black flex flex-col items-center justify-center p-4">
+          <div className="vintage-screen-glow opacity-50" />
+          <div className="vintage-scanlines" />
+          <div className="vintage-noise opacity-20" />
+          
+          <div className="animate-pulse flex flex-col items-center gap-[4px]">
+            <span className="text-[10px] font-black tracking-widest text-[#ff3333] drop-shadow-[0_0_8px_rgba(255,51,51,0.8)]" style={{ fontFamily: "var(--font)" }}>GAME BOY</span>
+            <span className="text-[5px] text-[#c8e0ff] mt-[4px]" style={{ fontFamily: "var(--font)" }}>STANDBY MODE</span>
+            <div className="mt-[8px] flex items-center gap-[2px]">
+              <span className="vintage-hk bg-[rgba(255,255,255,0.2)] border-white/40">ANY KEY</span>
+              <span className="text-[4px] text-[#22cc44]" style={{ fontFamily: "var(--font)" }}>TO RESUME</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

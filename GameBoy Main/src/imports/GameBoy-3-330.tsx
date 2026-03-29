@@ -16,65 +16,64 @@ interface GameBoyProps {
 
 function DPad1({ onAction }: { onAction: (type: string) => void }) {
   return (
-    <div className="absolute left-[20px] size-[72px] top-[207px]" data-name="D-Pad">
+    <div className="absolute left-[20px] size-[72px] top-[207px] transition-transform duration-[50ms] active:scale-[0.98]" data-name="D-Pad">
       <div className="absolute inset-[-16.67%_-16.67%_-27.78%_-27.78%]">
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 104 104">
           <g filter="url(#filter0_d_2_76)" id="D-Pad">
             <path d={svgPaths.p7bde280} fill="url(#paint0_linear_2_76)" id="Indent" />
-            <g filter="url(#filter1_ii_2_76)" id="Cross" className="pointer-events-none">
+            <g filter="url(#filter1_ii_2_76)" id="Cross">
               <path
                 d={svgPaths.p20e9c00}
                 fill="var(--fill-0, #5D5F60)"
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAction("DPAD");
-                }}
               />
             </g>
             <g
               filter="url(#filter2_i_2_76)"
               id="Icon"
-              className="pointer-events-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAction("LEFT");
-              }}
+              className="cursor-pointer"
+              onPointerDown={() => { onAction("LEFT"); }}
+              onPointerUp={() => { onAction("LEFT_RELEASE"); }}
+              onPointerLeave={() => { onAction("LEFT_RELEASE"); }}
             >
-              <path d={svgPaths.p2df174c0} stroke="var(--stroke-0, #464946)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+              {/* Invisible Hitbox Expander for LEFT */}
+              <rect x="18" y="38" width="26" height="26" fill="transparent" />
+              <path d={svgPaths.p2df174c0} stroke="#111111" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
             </g>
             <g
               filter="url(#filter3_i_2_76)"
               id="Icon_2"
-              className="pointer-events-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAction("UP");
-              }}
+              className="cursor-pointer"
+              onPointerDown={() => { onAction("UP"); }}
+              onPointerUp={() => { onAction("UP_RELEASE"); }}
+              onPointerLeave={() => { onAction("UP_RELEASE"); }}
             >
-              <path d={svgPaths.p1adcca00} stroke="var(--stroke-0, #464946)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+              {/* Invisible Hitbox Expander for UP */}
+              <rect x="38" y="16" width="26" height="26" fill="transparent" />
+              <path d={svgPaths.p1adcca00} stroke="#111111" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
             </g>
             <g
               filter="url(#filter4_i_2_76)"
               id="Icon_3"
-              className="pointer-events-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAction("RIGHT");
-              }}
+              className="cursor-pointer"
+              onPointerDown={() => { onAction("RIGHT"); }}
+              onPointerUp={() => { onAction("RIGHT_RELEASE"); }}
+              onPointerLeave={() => { onAction("RIGHT_RELEASE"); }}
             >
-              <path d={svgPaths.p1fbf7280} stroke="var(--stroke-0, #464946)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+              {/* Invisible Hitbox Expander for RIGHT */}
+              <rect x="62" y="38" width="26" height="26" fill="transparent" />
+              <path d={svgPaths.p1fbf7280} stroke="#111111" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
             </g>
             <g
               filter="url(#filter5_i_2_76)"
               id="Icon_4"
-              className="pointer-events-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAction("DOWN");
-              }}
+              className="cursor-pointer"
+              onPointerDown={() => { onAction("DOWN"); }}
+              onPointerUp={() => { onAction("DOWN_RELEASE"); }}
+              onPointerLeave={() => { onAction("DOWN_RELEASE"); }}
             >
-              <path d={svgPaths.p2eaf4980} stroke="var(--stroke-0, #464946)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+              {/* Invisible Hitbox Expander for DOWN */}
+              <rect x="38" y="62" width="26" height="26" fill="transparent" />
+              <path d={svgPaths.p2eaf4980} stroke="#111111" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
             </g>
             <g filter="url(#filter6_ii_2_76)" id="Gap">
               <circle cx="56" cy="48" fill="var(--fill-0, #5D5F60)" r="6" />
@@ -169,12 +168,6 @@ function DPad1({ onAction }: { onAction: (type: string) => void }) {
             </linearGradient>
           </defs>
         </svg>
-
-        {/* Expanded Hitboxes for D-Pad - MASSIVELY INCREASED forgiving touches */}
-        <div className="absolute left-[20px] top-[-20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("UP")} onPointerUp={() => onAction("UP_RELEASE")} onPointerLeave={() => onAction("UP_RELEASE")} />
-        <div className="absolute left-[20px] bottom-[-20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("DOWN")} onPointerUp={() => onAction("DOWN_RELEASE")} onPointerLeave={() => onAction("DOWN_RELEASE")} />
-        <div className="absolute left-[-20px] top-[20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("LEFT")} onPointerUp={() => onAction("LEFT_RELEASE")} onPointerLeave={() => onAction("LEFT_RELEASE")} />
-        <div className="absolute right-[-20px] top-[20px] w-[64px] h-[64px] z-10 cursor-pointer" onPointerDown={() => onAction("RIGHT")} onPointerUp={() => onAction("RIGHT_RELEASE")} onPointerLeave={() => onAction("RIGHT_RELEASE")} />
       </div>
     </div>
   );
@@ -211,13 +204,15 @@ function Button2() {
 function Button1({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[66.8px] top-[226.64px] w-[25.2px]"
+      className="group absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[66.8px] top-[226.64px] w-[25.2px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("X")} onPointerUp={() => onAction("X_RELEASE")} onPointerLeave={() => onAction("X_RELEASE")} />
-      <Button2 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">X</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="X Button" onPointerDown={() => onAction("X")} onPointerUp={() => onAction("X_RELEASE")} onPointerLeave={() => onAction("X_RELEASE")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.92] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button2 />
+      </div>
+      <div className="opacity-90 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#2e2b5e] text-[8px] tracking-[-0.24px] whitespace-nowrap pt-[2px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.15)]">X</p>
       </div>
     </div>
   );
@@ -246,13 +241,15 @@ function Button4() {
 function Button3({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[43.4px] top-[203px] w-[25.2px]"
+      className="group absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[43.4px] top-[203px] w-[25.2px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("Y")} onPointerUp={() => onAction("Y_RELEASE")} onPointerLeave={() => onAction("Y_RELEASE")} />
-      <Button4 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">Y</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="Y Button" onPointerDown={() => onAction("Y")} onPointerUp={() => onAction("Y_RELEASE")} onPointerLeave={() => onAction("Y_RELEASE")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.92] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button4 />
+      </div>
+      <div className="opacity-90 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#2e2b5e] text-[8px] tracking-[-0.24px] whitespace-nowrap pt-[2px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.15)]">Y</p>
       </div>
     </div>
   );
@@ -281,13 +278,15 @@ function Button6() {
 function Button5({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[20px] top-[226.64px] w-[25.2px]"
+      className="group absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[20px] top-[226.64px] w-[25.2px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("B")} onPointerUp={() => onAction("B_RELEASE")} onPointerLeave={() => onAction("B_RELEASE")} />
-      <Button6 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">B</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="B Button" onPointerDown={() => onAction("B")} onPointerUp={() => onAction("B_RELEASE")} onPointerLeave={() => onAction("B_RELEASE")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.92] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button6 />
+      </div>
+      <div className="opacity-90 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#732031] text-[8px] tracking-[-0.24px] whitespace-nowrap pt-[2px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.15)]">B</p>
       </div>
     </div>
   );
@@ -316,13 +315,15 @@ function Button8() {
 function Button7({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[43.4px] top-[250.27px] w-[25.2px]"
+      className="group absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[32.727px] items-center right-[43.4px] top-[250.27px] w-[25.2px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("A")} onPointerUp={() => onAction("A_RELEASE")} onPointerLeave={() => onAction("A_RELEASE")} />
-      <Button8 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">A</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="A Button" onPointerDown={() => onAction("A")} onPointerUp={() => onAction("A_RELEASE")} onPointerLeave={() => onAction("A_RELEASE")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.92] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button8 />
+      </div>
+      <div className="opacity-90 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#732031] text-[8px] tracking-[-0.24px] whitespace-nowrap pt-[2px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.15)]">A</p>
       </div>
     </div>
   );
@@ -370,13 +371,15 @@ function Button10() {
 function Button9({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="-translate-x-1/2 absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[28px] items-center left-1/2 top-[187px] w-[22px]"
+      className="group -translate-x-1/2 absolute content-stretch cursor-pointer flex flex-col gap-[2px] h-[28px] items-center left-1/2 top-[187px] w-[22px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onClick={() => onAction("MENU")} />
-      <Button10 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">ON/OFF</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="Power Button" onClick={() => onAction("MENU")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.92] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button10 />
+      </div>
+      <div className="opacity-80 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#555] text-[7px] tracking-tight whitespace-nowrap pt-[2px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.3)]">ON/OFF</p>
       </div>
     </div>
   );
@@ -413,13 +416,15 @@ function Button13() {
 function Button12({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="content-stretch cursor-pointer flex flex-col gap-[2px] h-[22px] items-center relative w-[32px]"
+      className="group content-stretch cursor-pointer flex flex-col gap-[4px] h-[22px] items-center relative w-[32px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("SELECT")} onPointerUp={() => onAction("SELECT_RELEASE")} onPointerLeave={() => onAction("SELECT_RELEASE")} />
-      <Button13 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">Select</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="Select Button" onPointerDown={() => onAction("SELECT")} onPointerUp={() => onAction("SELECT_RELEASE")} onPointerLeave={() => onAction("SELECT_RELEASE")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.95] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button13 />
+      </div>
+      <div className="opacity-80 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#555] text-[7px] tracking-tight whitespace-nowrap pt-[4px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.3)]">SELECT</p>
       </div>
     </div>
   );
@@ -468,13 +473,15 @@ function Button16() {
 function Button15({ onAction }: { onAction: (type: string) => void }) {
   return (
     <div
-      className="content-stretch cursor-pointer flex flex-col gap-[2px] h-[22px] items-center relative w-[32px]"
+      className="group content-stretch cursor-pointer flex flex-col gap-[4px] h-[22px] items-center relative w-[32px]"
       data-name="Button"
     >
-      <div className="absolute -inset-5 z-10" onPointerDown={() => onAction("START")} onPointerUp={() => onAction("START_RELEASE")} onPointerLeave={() => onAction("START_RELEASE")} />
-      <Button16 />
-      <div className="flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#302f6b] text-[8px] tracking-[-0.24px] whitespace-nowrap">
-        <p className="leading-[1.2]">Start</p>
+      <div className="absolute -inset-1 z-10" role="button" aria-label="Start Button" onPointerDown={() => onAction("START")} onPointerUp={() => onAction("START_RELEASE")} onPointerLeave={() => onAction("START_RELEASE")} />
+      <div className="transition-transform duration-[50ms] group-active:scale-[0.95] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] rounded-[999px]">
+        <Button16 />
+      </div>
+      <div className="opacity-80 flex flex-col font-['IBM_Plex_Mono:Bold',sans-serif] justify-end leading-[0] not-italic relative shrink-0 text-[#555] text-[7px] tracking-tight whitespace-nowrap pt-[4px]">
+        <p className="leading-[1.2] drop-shadow-[0_1px_rgba(255,255,255,0.3)]">START</p>
       </div>
     </div>
   );
@@ -713,7 +720,7 @@ function Group() {
 
 export default function GameBoy({ state, bootStep, onAction, selectedPowerOption, osActiveIndex }: GameBoyProps) {
   return (
-    <div className="bg-[#c8c5c2] overflow-clip relative rounded-bl-[14px] rounded-br-[14px] rounded-tl-[14px] rounded-tr-[14px] size-full select-none" data-name="GameBoy">
+    <div className="bg-[#c8c5c2] overflow-clip relative rounded-bl-[14px] rounded-br-[14px] rounded-tl-[14px] rounded-tr-[14px] size-full select-none" data-name="GameBoy" role="application" aria-label="GameBoy Emulator Core">
       <DPad onAction={onAction} />
       <Button onAction={onAction} />
       <Button9 onAction={onAction} />
