@@ -123,5 +123,5 @@ Distributed under the MIT License.
 *Note: Any embedded game ROMs (e.g., Mario) are property of their respective copyright holders. This project is a technical demonstration of web-based emulation and hardware simulation for educational purposes.*
 
 ---
-*Built with ❤️ for the love of 8-bit gaming.*
+*Built with ❤️ for the love of retro games.*
 
