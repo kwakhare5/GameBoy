@@ -32,9 +32,16 @@ export default function StatsScreen() {
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    const activeEl = scrollRef.current.querySelector('[data-active="true"]');
-    if (activeEl) {
-      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    
+    // If we're at the top item, scroll the entire container to the top 
+    // to ensure the Global Usage banner is also visible.
+    if (activeIndex === 0) {
+      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      const activeEl = scrollRef.current.querySelector('[data-active="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     }
   }, [activeIndex]);
 
