@@ -33,9 +33,9 @@ export default function StatsScreen() {
   useEffect(() => {
     if (!scrollRef.current) return;
     
-    // Fallback: guaranteed robust top-scroll for mobile and web views
+    // Smooth scroll entire container up to ensure banner is visible
     if (activeIndex === 0) {
-      scrollRef.current.scrollTop = 0;
+      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       const activeEl = scrollRef.current.querySelector('[data-active="true"]');
       if (activeEl) {
