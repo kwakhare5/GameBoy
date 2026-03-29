@@ -12,7 +12,6 @@ const BX = 0, BY = 0;
 
 // ═══ DIRECTIONS ═══
 const DIR: Record<string, { x: number; y: number }> = { UP: { x: 0, y: -1 }, DOWN: { x: 0, y: 1 }, LEFT: { x: -1, y: 0 }, RIGHT: { x: 1, y: 0 } };
-const OPPOSITE: Record<string, string> = { UP: "DOWN", DOWN: "UP", LEFT: "RIGHT", RIGHT: "LEFT" };
 
 // ═══ COLORS ═══
 const GREEN_HEAD = "#88eeff", GREEN_BODY = "#00d4ff", GREEN_DARK = "#006688";
@@ -295,11 +294,9 @@ function drawPreview(canvas: HTMLCanvasElement | null) {
   ctx.fillStyle = "#ff3333"; ctx.fillRect(food.x * ps, food.y * ps, ps, ps);
 }
 
-interface SnakeGameProps {
-  onAction: (type: string) => void;
-}
 
-export default function SnakeGame({ onAction }: SnakeGameProps) {
+
+export default function SnakeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prevRef = useRef<HTMLCanvasElement>(null);
   const gs = useRef<any>(null);

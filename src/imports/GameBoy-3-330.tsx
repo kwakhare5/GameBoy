@@ -557,7 +557,7 @@ function Frame({
       )}
 
       {state === "PLAYING_SNAKE" && (
-        <SnakeGame onAction={onAction} />
+        <SnakeGame />
       )}
 
       {state === "PLAYING_TETRIS" && (
