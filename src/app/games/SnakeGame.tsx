@@ -67,6 +67,10 @@ function aiBFS(snake: { x: number; y: number }[], food: { x: number; y: number }
   const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
   const dirs = Object.values(DIR);
 
+  // Helper to check if a direction is opposite to current velocity
+  const isOpposite = (d1: {x:number, y:number}, d2: {x:number, y:number}) => 
+    (d1.x === -d2.x && d1.x !== 0) || (d1.y === -d2.y && d1.y !== 0);
+
   // BFS to find shortest path to food
   const queue: { pos: { x: number; y: number }; firstDir: { x: number; y: number } }[] = [];
   const visited = new Set([`${head.x},${head.y}`]);
@@ -79,9 +83,9 @@ function aiBFS(snake: { x: number; y: number }[], food: { x: number; y: number }
     if (nx === food.x && ny === food.y) {
       // Check if eating here leaves enough open space for survival
       const newOccupied = new Set(occupied);
-      newOccupied.add(key); // new head position (snake grows, no tail removal)
+      newOccupied.add(key);
       const space = floodFillCount(nx, ny, newOccupied);
-      if (space >= snake.length) return d; // Safe to eat
+      if (space >= snake.length) return d;
     }
     visited.add(key);
     queue.push({ pos: { x: nx, y: ny }, firstDir: d });
@@ -95,26 +99,30 @@ function aiBFS(snake: { x: number; y: number }[], food: { x: number; y: number }
       if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
       if (occupied.has(key) || visited.has(key)) continue;
       if (nx === food.x && ny === food.y) {
-        // Found food — verify survival after eating
         const newHead = { x: head.x + firstDir.x, y: head.y + firstDir.y };
         const newOccupied = new Set(occupied);
         newOccupied.add(`${newHead.x},${newHead.y}`);
         const space = floodFillCount(newHead.x, newHead.y, newOccupied);
         if (space >= snake.length) return firstDir;
-        break; // Path to food exists but is unsafe, fall through to survival mode
+        continue; // Try other paths to food if this one is a trap
       }
       visited.add(key);
       queue.push({ pos: { x: nx, y: ny }, firstDir });
     }
   }
 
-  // Survival mode: pick the direction with the most open flood-fill space
+  // Survival mode: pick the direction with the most open space that isn't suicide
   let bestDir = dirs[0];
   let bestSpace = -1;
+  const currentDir = snake.length > 1 ? { x: snake[0].x - snake[1].x, y: snake[0].y - snake[1].y } : { x: 1, y: 0 };
+  
   for (const d of dirs) {
+    if (isOpposite(d, currentDir)) continue; // AI must never turn into itself
+
     const nx = head.x + d.x, ny = head.y + d.y;
     if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
     if (occupied.has(`${nx},${ny}`)) continue;
+
     const walls = new Set(occupied);
     walls.add(`${nx},${ny}`);
     const space = floodFillCount(nx, ny, walls);
@@ -347,10 +355,12 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
       if (g && g.phase === "playing") {
         if (g.ai && g.food) {
           const aiDir = aiBFS(g.snake, g.food);
-          const dirKey = Object.keys(DIR).find(k => DIR[k] === g.dir) || "RIGHT";
-          const oppKey = OPPOSITE[dirKey];
-          const aiDirKey = Object.keys(DIR).find(k => DIR[k] === aiDir);
-          if (aiDir && aiDirKey !== oppKey) {
+          
+          // Coordinate matching instead of reference equality
+          const dirX = g.dir.x, dirY = g.dir.y;
+          const oppX = -dirX, oppY = -dirY;
+          
+          if (aiDir && !(aiDir.x === oppX && aiDir.x !== 0 || aiDir.y === oppY && aiDir.y !== 0)) {
             if (g.inputQueue.length === 0) g.inputQueue.push(aiDir);
           }
         }
@@ -430,94 +440,11 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
     return () => { live = false; cancelAnimationFrame(raf.current); };
   }, []);
 
-  useEffect(() => {
-    // ═══ GAMEBOY CONTROLLER MAPPINGS ═══
-    // D-PAD: Arrow keys
-    // A: Z (Start/Confirm)
-    // B: X (Pause/Back)
-    function handleInput(action: string) {
-      const g = gs.current;
-      const phase = g?.phase ?? ui.phase;
-
-      if (action === "SELECT") {
-        if (g && (phase === "playing" || phase === "start")) { g.ai = !g.ai; setUI(u => ({ ...u, ai: g.ai })); return; }
-      }
-      
-      if (action === "START" || action === "A") {
-        if (phase === "start" || phase === "gameover") { init(false); return; }
-        if (phase === "paused") { if (g) g.phase = "playing"; setUI(u => ({ ...u, phase: "playing" })); return; }
-      }
-      
-      if (action === "B") {
-        if (g && phase !== "gameover" && phase !== "start") {
-          g.phase = g.phase === "paused" ? "playing" : "paused";
-          setUI(u => ({ ...u, phase: g.phase })); return;
-        }
-      }
-
-      // X/Y buttons (A/S keys) mappings were previously mapped. We'll map them via generic actions if possible, 
-      // but standard GameBoy logic for boost:
-      if (action === "X" || action === "Y") {
-        if (g && phase === "playing") {
-          g.moveInterval = Math.max(30, LEVEL_SPEEDS[Math.min(9, g.level + 2)]);
-          return;
-        }
-      }
-      
-      const DIR_STR_MAP: Record<string, {x:number, y:number}> = {
-        UP: DIR.UP, DOWN: DIR.DOWN, LEFT: DIR.LEFT, RIGHT: DIR.RIGHT
-      };
-      const d = DIR_STR_MAP[action];
-      if (d) {
-        if (g && phase === "start") {
-           // Should not happen anymore, but just in case
-           g.phase = "playing"; setUI(u => ({ ...u, phase: "playing" }));
-        }
-        
-        if (g && g.phase === "playing") {
-          const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
-          const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
-          const oppKey = OPPOSITE[dirKey];
-          const dKey = Object.keys(DIR).find(k => DIR[k] === d);
-          
-          if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
-            g.inputQueue.push(d);
-          }
-        }
-      }
-    }
-    
-    function onKey(e: KeyboardEvent) {
-      const KEY_TO_ACTION: Record<string, string> = {
-        ArrowUp: "UP", KeyW: "UP",
-        ArrowDown: "DOWN", KeyS: "DOWN",
-        ArrowLeft: "LEFT", KeyA: "LEFT",
-        ArrowRight: "RIGHT", KeyD: "RIGHT",
-        Enter: "START", KeyZ: "A",
-        KeyX: "B",
-        ShiftLeft: "SELECT", ShiftRight: "SELECT"
-      };
-      const action = KEY_TO_ACTION[e.code];
-      if (action) {
-        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.code)) e.preventDefault();
-        handleInput(action);
-      }
-    }
-    
-    window.addEventListener("keydown", onKey);
-    (window as any).__gameInput = handleInput;
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      delete (window as any).__gameInput;
-    };
-  }, [init, ui.phase]);
-
   const touch = useRef<any>({});
   const onTS = (e: React.TouchEvent) => { e.preventDefault(); touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }; };
   const onTE = (e: React.TouchEvent) => {
     e.preventDefault();
-    const g = gs.current, phase = g?.phase ?? ui.phase;
-    if (phase === "start" || phase === "gameover") { init(false); return; }
+    const g = gs.current;
     if (!g || g.phase !== "playing") return;
     const dx = e.changedTouches[0].clientX - touch.current.x;
     const dy = e.changedTouches[0].clientY - touch.current.y;
@@ -526,63 +453,100 @@ export default function SnakeGame({ onAction }: SnakeGameProps) {
     if (Math.abs(dx) > Math.abs(dy)) d = dx < 0 ? DIR.LEFT : DIR.RIGHT;
     else d = dy < 0 ? DIR.UP : DIR.DOWN;
     
+    // Find effective direction (last in queue or current)
     const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
-    const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
-    const oppKey = OPPOSITE[dirKey];
-    const dKey = Object.keys(DIR).find(k => DIR[k] === d);
     
-    if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
+    // Avoid opposite turns
+    const isOpposite = d.x === -effectiveDir.x && d.x !== 0 || d.y === -effectiveDir.y && d.y !== 0;
+    
+    if (!isOpposite && g.inputQueue.length < 3) {
       g.inputQueue.push(d);
     }
   };
 
+  // ═══ UNIFIED INPUT HANDLER ═══
   useEffect(() => {
-    (window as any).__gameInput = (type: string) => {
+    function handleInput(type: string) {
       const g = gs.current;
       if (!g) return;
+      
       const phase = g.phase;
 
-      if (phase === "start") {
-        if (type === "START") init(false);
-        return;
-      }
-
-      if (phase === "gameover") {
-        if (type === "START") init(false);
-        return;
-      }
-
-      if (type === "START") {
-        g.phase = g.phase === "paused" ? "playing" : "paused";
-        setUI(u => ({ ...u, phase: g.phase }));
-        return;
-      }
-
-      // Y toggles AI mode
+      // Global Toggles (Available in most phases)
       if (type === "Y") {
         g.ai = !g.ai;
         setUI(u => ({ ...u, ai: g.ai }));
         return;
       }
+
+      const isStartOrOver = phase === "start" || phase === "gameover";
       
-      if (!g || g.phase !== "playing") return;
+      if (type === "START" || type === "A") {
+        if (isStartOrOver) { init(false); return; }
+        if (phase === "paused") { g.phase = "playing"; setUI(u => ({ ...u, phase: "playing" })); return; }
+      }
       
+      if (type === "B") {
+        if (!isStartOrOver) {
+          g.phase = g.phase === "paused" ? "playing" : "paused";
+          setUI(u => ({ ...u, phase: g.phase }));
+          return;
+        }
+      }
+
+      if (type === "X") {
+         if (g.phase === "playing") {
+            g.moveInterval = Math.max(30, LEVEL_SPEEDS[Math.min(9, g.level + 2)]);
+            return;
+         }
+      }
+
+      if (phase !== "playing") return;
+
       const KEY_MAP: Record<string, { x: number; y: number }> = {
         UP: DIR.UP, DOWN: DIR.DOWN, LEFT: DIR.LEFT, RIGHT: DIR.RIGHT
       };
       const d = KEY_MAP[type];
       if (d) {
+        // Find effective direction (last in queue or current)
         const effectiveDir = g.inputQueue.length > 0 ? g.inputQueue[g.inputQueue.length - 1] : g.dir;
-        const dirKey = Object.keys(DIR).find(k => DIR[k] === effectiveDir) || "RIGHT";
-        const oppKey = OPPOSITE[dirKey];
-        const dKey = Object.keys(DIR).find(k => DIR[k] === d);
-        if (dKey !== oppKey && dKey !== dirKey && g.inputQueue.length < 3) {
+        
+        // Use coordinate matching for safety against object reference divergence
+        const isSelfDir = d.x === effectiveDir.x && d.y === effectiveDir.y;
+        const isOpposite = d.x === -effectiveDir.x && d.x !== 0 || d.y === -effectiveDir.y && d.y !== 0;
+        
+        if (!isSelfDir && !isOpposite && g.inputQueue.length < 3) {
           g.inputQueue.push(d);
         }
       }
+    }
+
+    function onKey(e: KeyboardEvent) {
+      const KEY_TO_ACTION: Record<string, string> = {
+        ArrowUp: "UP", KeyW: "UP",
+        ArrowDown: "DOWN", KeyS: "DOWN",
+        ArrowLeft: "LEFT", KeyA: "LEFT",
+        ArrowRight: "RIGHT", KeyD: "RIGHT",
+        Enter: "START", KeyZ: "A", 
+        KeyX: "B", // GB B button
+        KeyQ: "X", // GB X button (boost) - Use Q to avoid WASD conflict
+        KeyE: "Y", // GB Y button (AI toggle) - Use E to avoid WASD conflict
+      };
+      const action = KEY_TO_ACTION[e.code];
+      if (action) {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
+        handleInput(action);
+      }
+    }
+
+    window.addEventListener("keydown", onKey);
+    (window as any).__gameInput = handleInput;
+    
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      delete (window as any).__gameInput;
     };
-    return () => { delete (window as any).__snakeInput; };
-  }, [init, onAction]);
+  }, [init, ui.phase]);
 
   const spd = Math.min(9, ui.level);
 

@@ -175,6 +175,8 @@ export default function App() {
       ArrowRight: "RIGHT",
       KeyZ: "A",
       KeyX: "B",
+      KeyQ: "X",
+      KeyE: "Y",
       Enter: "START",
       ShiftLeft: "SELECT",
       ShiftRight: "SELECT",
