@@ -33,10 +33,9 @@ export default function StatsScreen() {
   useEffect(() => {
     if (!scrollRef.current) return;
     
-    // If we're at the top item, scroll the entire container to the top 
-    // to ensure the Global Usage banner is also visible.
+    // Fallback: guaranteed robust top-scroll for mobile and web views
     if (activeIndex === 0) {
-      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      scrollRef.current.scrollTop = 0;
     } else {
       const activeEl = scrollRef.current.querySelector('[data-active="true"]');
       if (activeEl) {
