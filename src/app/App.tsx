@@ -142,7 +142,7 @@ export default function App() {
 
     if (currentScreen === "POWER_CONFIRM") {
       if (isRelease) return;
-      if (baseType === "UP" || baseType === "DOWN") {
+      if (baseType === "UP" || baseType === "DOWN" || baseType === "LEFT" || baseType === "RIGHT") {
         play("MOVE");
         setPowerOption(powerOption === "YES" ? "NO" : "YES");
       } else if (baseType === "B") {

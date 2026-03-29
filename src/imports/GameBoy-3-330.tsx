@@ -517,32 +517,37 @@ function Frame({
       {state === "OFF" && <div className="absolute inset-0 bg-black" />}
 
       {state === "BOOTING" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg)] z-50 overflow-hidden">
-          {bootStep === 2 && (
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="vintage-screen-bg" />
-              <div className="vintage-scanlines" />
-              <div className="vintage-vignette" />
-              <div className="vintage-screen-glow" />
-            </div>
-          )}
+        <div className="absolute inset-0 flex flex-col items-center bg-[var(--bg)] z-50 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="vintage-screen-bg" />
+            <div className="vintage-scanlines" />
+            <div className="vintage-vignette" />
+            <div className="vintage-screen-glow" />
+          </div>
 
-          <div className={`flex flex-col items-center gap-[6px] transition-all duration-1000 ease-out ${bootStep >= 1 ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 -translate-y-4"} z-10 relative`}>
-             
-             {/* Main Logo stylized like header */}
-             <div className="vintage-title-main text-[14px] tracking-widest text-shadow-sm mb-[2px]">
-                GAME BOY
-             </div>
-
-             <div className="flex items-center justify-center bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)] px-[6px] py-[3px] rounded-[2px]">
-               <span className="text-[6.5px] font-black text-[var(--orange)] tracking-[3px] drop-shadow-[0_0_2px_rgba(255,140,0,0.4)]">VINTAGE OS</span>
-             </div>
-
-             {bootStep === 2 && (
-               <div className="text-[4px] font-bold text-[#888] tracking-widest mt-6 animate-pulse uppercase">
-                 SYSTEM BOOTING...
+          {/* Falling Logo Effect a la Classic GB, but neon orange */}
+          <div 
+            className={`flex flex-col items-center justify-center h-full w-full transition-transform ease-linear
+              ${bootStep === 0 ? "duration-0 -translate-y-[120%]" : "duration-[1200ms] translate-y-0"}`}
+          >
+             <div className="flex relative items-start">
+               <div className="font-['Press_Start_2P',sans-serif] text-[14px] text-transparent [-webkit-text-stroke:1px_#ff8c00] tracking-widest drop-shadow-[0_0_8px_rgba(255,140,0,0.8)]">
+                 GAMEBOY
                </div>
-             )}
+               <div className="font-[sans-serif] text-[#ff8c00] text-[4px] font-bold mt-[2px] ml-[1px]">
+                 TM
+               </div>
+               {/* Filled text that flashes over it when it lands */}
+               <div className={`absolute top-0 left-0 font-['Press_Start_2P',sans-serif] text-[14px] text-[#ff8c00] tracking-widest transition-opacity duration-300 ${bootStep === 2 ? "opacity-100" : "opacity-0"}`}>
+                 GAMEBOY
+               </div>
+             </div>
+
+             <div className={`mt-[14px] border-t border-b border-[#ff8c00] py-[4px] px-[8px] bg-[rgba(255,140,0,0.1)] transition-all duration-[600ms] ease-out ${bootStep === 2 ? "opacity-100 scale-100" : "opacity-0 scale-150"}`}>
+               <div className="font-['Press_Start_2P',sans-serif] text-[6px] text-white tracking-[4px] drop-shadow-[0_0_4px_#ff8c00]">
+                 VINTAGE OS
+               </div>
+             </div>
           </div>
         </div>
       )}
@@ -572,56 +577,54 @@ function Frame({
       )}
 
       {state === "POWER_CONFIRM" && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--bg)] overflow-hidden">
-          {/* Background CRT Effects */}
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-[2px] overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
-            <div className="vintage-screen-bg" />
-            <div className="vintage-scanlines" />
+            <div className="vintage-scanlines opacity-50" />
             <div className="vintage-vignette" />
-            <div className="vintage-screen-glow" />
           </div>
 
-          <div className="z-10 w-full px-2 flex flex-col gap-2">
+          {/* Alert Modal */}
+          <div className="z-10 w-[140px] flex flex-col bg-[#050505] border-2 border-[#ff3333] shadow-[0_0_15px_rgba(255,51,51,0.6),inset_0_0_10px_rgba(255,51,51,0.2)] rounded-[2px] overflow-hidden">
             
-            <div className="vintage-title-row">
-              <span className="vintage-title-main">GAME BOY</span>
-              <span className="vintage-title-tag !text-[#ef4444] !border-[rgba(239,68,68,0.3)]">POWER</span>
+            {/* Header */}
+            <div className="bg-[#ff3333] text-black w-full text-center py-[4px] border-b-2 border-black flex items-center justify-center gap-[6px]">
+              <span className="text-[6px] font-black animate-pulse">⚠</span>
+              <span className="text-[7px] font-['Press_Start_2P',sans-serif] tracking-wider mt-[1px]">SYSTEM HALT</span>
+              <span className="text-[6px] font-black animate-pulse">⚠</span>
             </div>
 
-            <div className="vintage-main-area flex-col p-2 gap-[4px]">
+            <div className="p-[12px] flex flex-col items-center gap-[12px]">
               
-              <div className="flex items-center justify-center p-[5px] rounded-[2px] bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.5)] shadow-[inset_0_0_4px_rgba(239,68,68,0.1)] mb-[2px]">
-                <span className="text-[5.5px] font-black tracking-widest text-[#ef4444] drop-shadow-[0_0_2px_rgba(239,68,68,0.8)]">SYSTEM SHUTDOWN?</span>
+              <div className="text-[6px] font-['Press_Start_2P',sans-serif] text-[#dfdfdf] tracking-wide text-center leading-[1.8]">
+                POWER DOWN<br/>CONSOLE?
               </div>
 
-              {/* NO Option */}
-              <div 
-                className={`flex items-center justify-between p-[5px] rounded-[2px] transition-colors ${selectedPowerOption === "NO" ? "bg-[rgba(255,140,0,0.15)] border border-[rgba(255,140,0,0.5)] shadow-[inset_0_0_4px_rgba(255,140,0,0.1)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}
-              >
-                <span className={`text-[5px] font-bold tracking-wide ${selectedPowerOption === "NO" ? "text-white" : "text-[#888]"}`}>CANCEL</span>
-                <span className={`text-[5px] font-black ${selectedPowerOption === "NO" ? "text-[#ff8c00] animate-pulse" : "text-transparent"}`}>◄</span>
+              {/* Options */}
+              <div className="flex gap-[8px] mt-[2px] w-full justify-center">
+                
+                {/* NO Option */}
+                <div 
+                  className={`flex flex-col items-center gap-[4px] ${selectedPowerOption === "NO" ? "scale-110" : "scale-100 opacity-60"} transition-all`}
+                >
+                  <div className={`px-[10px] py-[6px] rounded-[2px] border-b-[2px] ${selectedPowerOption === "NO" ? "bg-[#333] border-[#111] shadow-[0_2px_0_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.2)]" : "bg-[#111] border-[#000]"}`}>
+                    <span className={`text-[6px] font-['Press_Start_2P',sans-serif] ${selectedPowerOption === "NO" ? "text-white" : "text-[#555]"}`}>NO</span>
+                  </div>
+                  {/* Indicator LED */}
+                  <div className={`w-[12px] h-[3px] rounded-full ${selectedPowerOption === "NO" ? "bg-[#00ff00] shadow-[0_0_5px_#00ff00]" : "bg-[#112211]"}`} />
+                </div>
+
+                {/* YES Option */}
+                <div 
+                  className={`flex flex-col items-center gap-[4px] ${selectedPowerOption === "YES" ? "scale-110" : "scale-100 opacity-60"} transition-all`}
+                >
+                  <div className={`px-[8px] py-[6px] rounded-[2px] border-b-[2px] ${selectedPowerOption === "YES" ? "bg-[#ff3333] border-[#880000] shadow-[0_2px_0_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,150,150,0.5)]" : "bg-[#220000] border-[#110000]"}`}>
+                    <span className={`text-[6px] font-['Press_Start_2P',sans-serif] ${selectedPowerOption === "YES" ? "text-white" : "text-[#770000]"}`}>YES</span>
+                  </div>
+                  {/* Indicator LED */}
+                  <div className={`w-[12px] h-[3px] rounded-full ${selectedPowerOption === "YES" ? "bg-[#ff3333] shadow-[0_0_5px_#ff3333]" : "bg-[#330000]"}`} />
+                </div>
+                
               </div>
-
-              {/* YES Option */}
-              <div 
-                className={`flex items-center justify-between p-[5px] rounded-[2px] transition-colors ${selectedPowerOption === "YES" ? "bg-[rgba(239,68,68,0.15)] border border-[#ef4444] shadow-[inset_0_0_4px_rgba(239,68,68,0.2)]" : "bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)]"}`}
-              >
-                <span className={`text-[5px] font-bold tracking-wide ${selectedPowerOption === "YES" ? "text-white" : "text-[#555]"}`}>POWER OFF</span>
-                <span className={`text-[5px] font-black ${selectedPowerOption === "YES" ? "text-[#ef4444] animate-pulse" : "text-transparent"}`}>◄</span>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Bottom hints */}
-          <div className="absolute bottom-0 left-0 right-0 h-[14px] flex items-center justify-between px-2 bg-[var(--bg)] border-t border-[rgba(255,255,255,0.05)] z-[200]">
-            <div className="vintage-hint" style={{ marginRight: 'auto' }}>
-              <span className="vintage-hk">A</span>
-              <span className="vintage-ha">CONFIRM</span>
-            </div>
-            <div className="vintage-hint">
-              <span className="vintage-hk">B</span>
-              <span className="vintage-ha">BACK</span>
             </div>
           </div>
         </div>
