@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import OSLayout from "./components/OSLayout";
+import OSLayout from "../shared/OSLayout";
 
 // ═══ LAYOUT ═══
 // Main display: 192px × 151px (content area inside bezels)

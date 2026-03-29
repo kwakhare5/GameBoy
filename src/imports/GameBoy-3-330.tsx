@@ -1,10 +1,10 @@
 import svgPaths from "./svg-lmu6lkplfc";
-import VintageOS from "../app/VintageOS";
-import SnakeGame from "../app/SnakeGame";
-import TetrisGame from "../app/TetrisGame";
-import NESEmulator from "../app/NESEmulator";
-import StatsScreen from "../app/StatsScreen";
-import SettingsScreen from "../app/SettingsScreen";
+import VintageOS from "../app/screens/VintageOS";
+import SnakeGame from "../app/games/SnakeGame";
+import TetrisGame from "../app/games/TetrisGame";
+import NESEmulator from "../app/games/NESEmulator";
+import StatsScreen from "../app/screens/StatsScreen";
+import SettingsScreen from "../app/screens/SettingsScreen";
 
 interface GameBoyProps {
   state: "OFF" | "BOOTING" | "MAIN_MENU" | "POWER_CONFIRM" | "PLAYING_SNAKE" | "PLAYING_TETRIS" | "PLAYING_MARIO" | "VIEWING_STATS" | "VIEWING_SETTINGS";

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import OSLayout from "./components/OSLayout";
-import { useGameBoySound } from "../hooks/useGameBoySound";
-import { useGameBoyStore } from "../stores/gameBoyStore";
+import OSLayout from "../shared/OSLayout";
+import { useGameBoySound } from "../../hooks/useGameBoySound";
+import { useGameBoyStore } from "../../stores/gameBoyStore";
 
 interface SettingsScreenProps {
   onAction?: (type: string) => void;

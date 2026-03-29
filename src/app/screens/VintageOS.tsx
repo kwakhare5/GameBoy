@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import OSLayout from "./components/OSLayout";
+import OSLayout from "../shared/OSLayout";
 
 interface VintageOSProps {
   activeIndex: number;
@@ -182,11 +182,12 @@ export default function VintageOS({ activeIndex }: VintageOSProps) {
             {/* Stats Footer Box (Only for Games) */}
             {isGame && (
               <div className="w-full flex justify-between bg-[rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.05)] p-[3px] rounded-[2px] mt-auto">
-                <div className="flex flex-col items-start justify-center flex-1 border-r border-[#333]">
+                <div className="flex flex-col items-center justify-center flex-1">
                   <span className="text-[3px] font-bold text-[#888] tracking-widest mb-[1px]">HI-SCORE</span>
                   <span className="text-[5.5px] font-black text-white leading-none drop-shadow-sm">{activeStats.hs}</span>
                 </div>
-                <div className="flex flex-col items-end justify-center flex-1 pr-[2px]">
+                <div className="w-px h-[8px] bg-[#333] self-center"></div>
+                <div className="flex flex-col items-center justify-center flex-1">
                   <span className="text-[3px] font-bold text-[#888] tracking-widest mb-[1px]">PLAYED</span>
                   <span className="text-[5.5px] font-black text-[#ff8c00] leading-none drop-shadow-[0_0_2px_rgba(255,140,0,0.5)]">{activeStats.plays}</span>
                 </div>

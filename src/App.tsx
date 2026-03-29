@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import GameBoy from "../imports/GameBoy-3-330";
-import { useGameBoyStore } from "../stores/gameBoyStore";
-import { useGameBoySound } from "../hooks/useGameBoySound";
+import GameBoy from "./imports/GameBoy-3-330";
+import { useGameBoyStore } from "./stores/gameBoyStore";
+import { useGameBoySound } from "./hooks/useGameBoySound";
 
 export default function App() {
   const {

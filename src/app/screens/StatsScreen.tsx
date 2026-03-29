@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import OSLayout from "./components/OSLayout";
-import { useGameBoySound } from "../hooks/useGameBoySound";
+import OSLayout from "../shared/OSLayout";
+import { useGameBoySound } from "../../hooks/useGameBoySound";
 
 export default function StatsScreen() {
   const { play } = useGameBoySound();

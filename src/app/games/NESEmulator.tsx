@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import OSLayout from "./components/OSLayout";
+import OSLayout from "../shared/OSLayout";
 // @ts-ignore
 import { NES } from "jsnes";
 
